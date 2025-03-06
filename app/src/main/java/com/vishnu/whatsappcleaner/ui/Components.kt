@@ -90,7 +90,7 @@ fun Title(modifier: Modifier, text: String) {
     Text(
         modifier = modifier.padding(8.dp),
         text = text,
-        fontSize = 32.sp,
+        fontSize = 24.sp,
         textAlign = TextAlign.Start,
         fontWeight = FontWeight.Bold,
     )

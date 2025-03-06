@@ -177,14 +177,14 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
 
                     if (size.contains(" ")) {
                         val split = size.split(" ")
-                        withStyle(SpanStyle(fontSize = 32.sp)) {
+                        withStyle(SpanStyle(fontSize = 24.sp)) {
                             append(split.get(0))
                         }
                         withStyle(SpanStyle(fontSize = 18.sp)) {
                             append(" ${split.get(1)}")
                         }
                     } else {
-                        withStyle(SpanStyle(fontSize = 28.sp)) {
+                        withStyle(SpanStyle(fontSize = 24.sp)) {
                             append(size)
                         }
                     }
@@ -377,6 +377,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                             SpanStyle(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 fontWeight = FontWeight.Black,
+                                fontSize = 18.sp,
                                 letterSpacing = 1.sp
                             )
                         ) {

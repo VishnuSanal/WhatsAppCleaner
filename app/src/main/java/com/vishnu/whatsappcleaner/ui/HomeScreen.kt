@@ -84,6 +84,7 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
                 Modifier
                     .padding(0.dp)
                     .align(Alignment.Start),
+
                 stringResource(R.string.app_name)
             )
 
@@ -99,14 +100,14 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
 
                             if (size.contains(" ")) {
                                 val split = size.split(" ")
-                                withStyle(SpanStyle(fontSize = 32.sp)) {
+                                withStyle(SpanStyle(fontSize = 24.sp)) {
                                     append(split.get(0))
                                 }
                                 withStyle(SpanStyle(fontSize = 18.sp)) {
                                     append(" ${split.get(1)}")
                                 }
                             } else {
-                                withStyle(SpanStyle(fontSize = 28.sp)) {
+                                withStyle(SpanStyle(fontSize = 24.sp)) {
                                     append(size)
                                 }
                             }
