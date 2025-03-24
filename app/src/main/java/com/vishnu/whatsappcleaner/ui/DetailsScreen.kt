@@ -23,6 +23,9 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,6 +35,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -44,16 +48,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DateRangePickerState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -68,6 +78,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -85,7 +97,9 @@ import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import java.text.DateFormat
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     val listDirectory = navController.previousBackStackEntry?.savedStateHandle?.get<ListDirectory>(
@@ -103,6 +117,8 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     var sortBy = remember { mutableStateOf("Date") }
     var isSortDescending = remember { mutableStateOf(true) }
 
+    val dateRangePickerState = rememberDateRangePickerState()
+
     var isInProgress by remember { mutableStateOf(false) }
     var showConfirmationDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
@@ -110,8 +126,20 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     var isGridView by remember { mutableStateOf(true) }
     var isAllSelected by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isInProgress, sortBy.value, isSortDescending.value) {
-        viewModel.getFileList(listDirectory.path, sortBy.value, isSortDescending.value)
+    LaunchedEffect(
+        isInProgress,
+        sortBy.value,
+        isSortDescending.value,
+        dateRangePickerState.selectedStartDateMillis,
+        dateRangePickerState.selectedEndDateMillis
+    ) {
+        viewModel.getFileList(
+            listDirectory.path,
+            sortBy.value,
+            isSortDescending.value,
+            dateRangePickerState.selectedStartDateMillis,
+            dateRangePickerState.selectedEndDateMillis
+        )
             .observeForever {
                 fileList.clear()
                 fileList.addAll(it)
@@ -120,7 +148,9 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
         if (listDirectory.hasSent) viewModel.getFileList(
             "${listDirectory.path}/Sent",
             sortBy.value,
-            isSortDescending.value
+            isSortDescending.value,
+            dateRangePickerState.selectedStartDateMillis,
+            dateRangePickerState.selectedEndDateMillis
         )
             .observeForever {
                 sentList.clear()
@@ -130,7 +160,9 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
         if (listDirectory.hasPrivate) viewModel.getFileList(
             "${listDirectory.path}/Private",
             sortBy.value,
-            isSortDescending.value
+            isSortDescending.value,
+            dateRangePickerState.selectedStartDateMillis,
+            dateRangePickerState.selectedEndDateMillis
         )
             .observeForever {
                 privateList.clear()
@@ -440,7 +472,8 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 showSortDialog = false
             },
             sortBy,
-            isSortDescending
+            isSortDescending,
+            dateRangePickerState
         )
     }
 
@@ -467,13 +500,17 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SortDialog(
     navController: NavHostController,
     onDismissRequest: () -> Unit,
     sortBy: MutableState<String>,
-    isSortDescending: MutableState<Boolean>
+    isSortDescending: MutableState<Boolean>,
+    dateRangePickerState: DateRangePickerState,
 ) {
+    var showDatePicker by remember { mutableStateOf(false) }
+
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(
@@ -532,6 +569,86 @@ fun SortDialog(
                             )
                         )
                         Text(text = item, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+
+                if (showDatePicker) DatePickerDialog(
+                    onDismissRequest = { showDatePicker = false },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showDatePicker = false
+                            }
+                        ) { Text("OK") }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showDatePicker = false
+                            }
+                        ) { Text("Cancel") }
+                    }
+                ) {
+                    DateRangePicker(state = dateRangePickerState)
+                }
+
+                Row(
+                    modifier = Modifier
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    when (selectedItem.value) {
+                        "Date" -> {
+                            OutlinedTextField(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .pointerInput(Unit) {
+                                        awaitEachGesture {
+                                            awaitFirstDown(pass = PointerEventPass.Initial)
+                                            val upEvent =
+                                                waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                                            if (upEvent != null) {
+                                                showDatePicker = true
+                                            }
+                                        }
+                                    },
+                                readOnly = true,
+                                value = if (dateRangePickerState.selectedEndDateMillis != null)
+                                    DateFormat.getDateInstance()
+                                        .format(dateRangePickerState.selectedStartDateMillis)
+                                else
+                                    "N/A",
+                                onValueChange = {},
+                                label = { Text("From Date") },
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            OutlinedTextField(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .pointerInput(Unit) {
+                                        awaitEachGesture {
+                                            awaitFirstDown(pass = PointerEventPass.Initial)
+                                            val upEvent =
+                                                waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                                            if (upEvent != null) {
+                                                showDatePicker = true
+                                            }
+                                        }
+                                    },
+                                readOnly = true,
+                                value = if (dateRangePickerState.selectedEndDateMillis != null)
+                                    DateFormat.getDateInstance()
+                                        .format(dateRangePickerState.selectedEndDateMillis)
+                                else
+                                    "N/A",
+                                onValueChange = {},
+                                label = { Text("To Date") },
+                            )
+                        }
                     }
                 }
 

@@ -35,6 +35,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.DateFormat
+import java.util.Date
 
 class MainViewModel(private val application: Application) : AndroidViewModel(application) {
 
@@ -90,7 +92,9 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
     fun getFileList(
         path: String,
         sortBy: String,
-        isSortDescending: Boolean
+        isSortDescending: Boolean,
+        filterStartDate: Long?,
+        filterEndDate: Long?,
     ): MutableLiveData<ArrayList<ListFile>> {
         Log.i("vishnu", "getFileList: $path")
 
@@ -109,6 +113,24 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
                 else
                     compareBy { it.lastModified() }
             )
+
+            if (filterStartDate != null && filterEndDate != null) {
+                val filteredList = fileList.filter {
+                    Log.e(
+                        "vishnu",
+                        "${DateFormat.getDateInstance().format(filterStartDate)} ::" +
+                            "${DateFormat.getDateInstance().format(it.lastModified())} ::" +
+                            "${DateFormat.getDateInstance().format(filterEndDate)} ::"
+                    )
+
+                    val lastModified = Date(it.lastModified())
+
+                    lastModified.after(Date(filterStartDate)) && lastModified.before(Date(filterEndDate))
+                }
+
+                fileList.clear()
+                fileList.addAll(filteredList)
+            }
 
             if (isSortDescending)
                 fileList.reverse()
