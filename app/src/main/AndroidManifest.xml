@@ -42,7 +42,7 @@
         android:icon="@drawable/recycling"
         android:label="@string/app_name"
         android:requestLegacyExternalStorage="true"
-        android:roundIcon="@drawable/recycling"
+        android:roundIcon="@drawable/recycling_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.WhatsAppCleaner"
         tools:targetApi="31">
