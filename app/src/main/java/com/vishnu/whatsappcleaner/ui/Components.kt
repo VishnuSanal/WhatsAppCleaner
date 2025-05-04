@@ -475,7 +475,7 @@ fun ItemListCard(
     val modifier = if (listFile.filePath.toString().contains(Constants.LIST_LOADING_INDICATION))
         Modifier.shimmer() else Modifier
 
-    LaunchedEffect (isSelected ){
+    LaunchedEffect(isSelected) {
         selected = isSelected
     }
 
