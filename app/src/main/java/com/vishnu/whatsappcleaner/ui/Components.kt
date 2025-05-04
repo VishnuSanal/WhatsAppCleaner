@@ -51,6 +51,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -473,6 +474,10 @@ fun ItemListCard(
 
     val modifier = if (listFile.filePath.toString().contains(Constants.LIST_LOADING_INDICATION))
         Modifier.shimmer() else Modifier
+
+    LaunchedEffect(isSelected) {
+        selected = isSelected
+    }
 
     Card(
         modifier = modifier
