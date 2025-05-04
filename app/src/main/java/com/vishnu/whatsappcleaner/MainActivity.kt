@@ -72,10 +72,7 @@ class MainActivity : ComponentActivity() {
                         Environment.getExternalStorageDirectory().absolutePath + File.separator + relativePath
 
                     viewModel.listDirectories(absolutePath).observeForever {
-                        if (it.toString().contains("/Media") &&
-                            it.toString()
-                                .contains("/Databases")
-                        ) {
+                        if (it.toString().contains("/Media")) {
                             contentResolver.takePersistableUriPermission(
                                 result.data!!.data!!,
                                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
