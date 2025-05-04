@@ -309,7 +309,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                         append(s)
                                     }
                                 },
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.bodyMedium,
                             )
                         }
                     }
@@ -464,7 +464,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         }
                     },
                     fontWeight = FontWeight.Medium,
-                    style = MaterialTheme.typography.headlineMedium
+                    style = MaterialTheme.typography.headlineSmall
                 )
             }
         }
