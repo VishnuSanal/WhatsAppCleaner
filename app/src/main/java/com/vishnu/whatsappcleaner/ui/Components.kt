@@ -344,12 +344,13 @@ fun ItemGridCard(
                             ) toggleSelection()
                         }
                 ) {
-                    if (selected) Icon(
-                        modifier = Modifier.clip(CircleShape),
-                        painter = painterResource(id = R.drawable.check_circle_filled),
-                        tint = MaterialTheme.colorScheme.primaryContainer,
-                        contentDescription = "checkbox",
-                    )
+                    if (selected) {
+                        CheckedIcon(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .size(24.dp),
+                        )
+                    }
                 }
 
                 if (listFile.extension.lowercase() in Constants.EXTENSIONS_IMAGE) GlideImage(
@@ -589,14 +590,11 @@ fun ItemListCard(
                     }
 
                     if (selected) {
-                        Icon(
+                        CheckedIcon(
                             modifier = Modifier
                                 .align(Alignment.Center)
-                                .size(48.dp)
+                                .size(24.dp)
                                 .zIndex(3f),
-                            painter = painterResource(id = R.drawable.check_circle_filled),
-                            tint = MaterialTheme.colorScheme.primaryContainer,
-                            contentDescription = "checkbox"
                         )
                     }
                 }
@@ -650,6 +648,22 @@ fun ItemListCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun CheckedIcon(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.onPrimary, shape = CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            modifier = Modifier.matchParentSize(),
+            painter = painterResource(id = R.drawable.check_circle_filled),
+            tint = MaterialTheme.colorScheme.primary,
+            contentDescription = "checkbox"
+        )
     }
 }
 
