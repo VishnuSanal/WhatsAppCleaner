@@ -67,6 +67,7 @@ import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
@@ -123,7 +124,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     var showConfirmationDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
 
-    var isGridView by remember { mutableStateOf(true) }
+    val isGridView by viewModel.isGridView.collectAsState()
     var isAllSelected by remember { mutableStateOf(false) }
 
     LaunchedEffect(
@@ -192,7 +193,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         .size(32.dp)
                         .padding(horizontal = 4.dp),
                     onClick = {
-                        isGridView = !isGridView
+                        viewModel.toggleViewType()
                     }
                 ) {
                     Icon(
