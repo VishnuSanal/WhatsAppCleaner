@@ -65,7 +65,6 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
         viewModelScope.launch {
             val current = storeData.isGridViewFlow.first()
             val toggled = !current
-            // Save the current view type to Store
             storeData.setGridViewPreference(toggled)
         }
     }
