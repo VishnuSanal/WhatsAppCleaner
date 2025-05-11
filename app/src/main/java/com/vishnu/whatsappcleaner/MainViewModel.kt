@@ -34,6 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Date
 
@@ -43,6 +44,9 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
 
     private val storeData = StoreData(application.applicationContext)
 
+    private val _isGridView = MutableStateFlow(false)
+    val isGridView: StateFlow<Boolean> = _isGridView.asStateFlow()
+
     private val _directoryItem =
         MutableStateFlow<ViewState<Pair<String, List<ListDirectory>>>>(ViewState.Loading)
     val directoryItem: StateFlow<ViewState<Pair<String, List<ListDirectory>>>> =
@@ -50,7 +54,18 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
 
     init {
         viewModelScope.launch(Dispatchers.Default) {
+            storeData.isGridViewFlow.collect {
+                _isGridView.value = it
+            }
             getDirectoryList()
+        }
+    }
+
+    fun toggleViewType() {
+        viewModelScope.launch {
+            val current = storeData.isGridViewFlow.first()
+            val toggled = !current
+            storeData.setGridViewPreference(toggled)
         }
     }
 
