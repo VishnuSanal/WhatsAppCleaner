@@ -90,15 +90,6 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
             val modifier = if (directoryItem.value is ViewState.Success) Modifier
             else Modifier.shimmer()
 
-//            Text(
-//                modifier = Modifier
-//                    .align(Alignment.Start)
-//                    .padding(16.dp, 16.dp, 16.dp, 8.dp),
-//                text = "Explore",
-//                fontWeight = FontWeight.SemiBold,
-//                style = MaterialTheme.typography.titleLarge,
-//            )
-
             when (directoryItem.value) {
                 is ViewState.Success -> {
                     LazyColumn(
