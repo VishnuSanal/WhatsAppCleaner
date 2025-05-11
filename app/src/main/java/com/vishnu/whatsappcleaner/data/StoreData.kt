@@ -53,6 +53,6 @@ class StoreData(val context: Context) {
 
     val isGridViewFlow: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[IS_GRID_VIEW_KEY] ?: false
+            preferences[IS_GRID_VIEW_KEY] ?: true
         }
 }
