@@ -40,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,7 +76,7 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
         modifier = Modifier.fillMaxSize()
     ) {
         Column(
-            Modifier.padding(top = 16.dp, bottom = 16.dp, start = 16.dp, end = 16.dp),
+            Modifier.padding(top = 16.dp, bottom = 16.dp, start = 2.dp, end = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Title(
@@ -91,51 +90,27 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
             val modifier = if (directoryItem.value is ViewState.Success) Modifier
             else Modifier.shimmer()
 
-            Banner(
-                modifier.padding(16.dp),
-                buildAnnotatedString {
-                    when (directoryItem.value) {
-                        is ViewState.Success -> {
-                            var size = (directoryItem.value as ViewState.Success).data.first
-
-                            if (size.contains(" ")) {
-                                val split = size.split(" ")
-                                withStyle(SpanStyle(fontSize = 24.sp)) {
-                                    append(split.get(0))
-                                }
-                                withStyle(SpanStyle(fontSize = 18.sp)) {
-                                    append(" ${split.get(1)}")
-                                }
-                            } else {
-                                withStyle(SpanStyle(fontSize = 24.sp)) {
-                                    append(size)
-                                }
-                            }
-                        }
-
-                        is ViewState.Loading -> withStyle(SpanStyle(fontSize = 18.sp)) {
-                            append("Loading...")
-                        }
-
-                        is ViewState.Error -> withStyle(SpanStyle(fontSize = 18.sp)) {
-                            append("Error")
-                        }
-                    }
-                }
-            )
-
-            Text(
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(16.dp, 16.dp, 16.dp, 8.dp),
-                text = "Explore",
-                fontWeight = FontWeight.SemiBold,
-                style = MaterialTheme.typography.titleLarge,
-            )
+//            Text(
+//                modifier = Modifier
+//                    .align(Alignment.Start)
+//                    .padding(16.dp, 16.dp, 16.dp, 8.dp),
+//                text = "Explore",
+//                fontWeight = FontWeight.SemiBold,
+//                style = MaterialTheme.typography.titleLarge,
+//            )
 
             when (directoryItem.value) {
                 is ViewState.Success -> {
-                    LazyColumn(Modifier.weight(1f)) {
+                    LazyColumn(
+                        Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        item {
+                            ListSizeHeader(
+                                modifier,
+                                directoryItem
+                            )
+                        }
                         items((directoryItem.value as ViewState.Success<Pair<String, List<ListDirectory>>>).data.second) {
                             SingleCard(it, navController)
                         }
@@ -169,3 +144,37 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
         }
     }
 }
+
+@Composable
+fun ListSizeHeader(modifier: Modifier = Modifier, viewState: State<ViewState<Pair<String, List<ListDirectory>>>>) = Banner(
+    modifier.padding(16.dp),
+    buildAnnotatedString {
+        when (viewState.value) {
+            is ViewState.Success -> {
+                var size = (viewState.value as ViewState.Success<Pair<String, List<ListDirectory>>>).data.first
+
+                if (size.contains(" ")) {
+                    val split = size.split(" ")
+                    withStyle(SpanStyle(fontSize = 24.sp)) {
+                        append(split.get(0))
+                    }
+                    withStyle(SpanStyle(fontSize = 18.sp)) {
+                        append(" ${split.get(1)}")
+                    }
+                } else {
+                    withStyle(SpanStyle(fontSize = 24.sp)) {
+                        append(size)
+                    }
+                }
+            }
+
+            is ViewState.Loading -> withStyle(SpanStyle(fontSize = 18.sp)) {
+                append("Loading...")
+            }
+
+            is ViewState.Error -> withStyle(SpanStyle(fontSize = 18.sp)) {
+                append("Error")
+            }
+        }
+    }
+)
