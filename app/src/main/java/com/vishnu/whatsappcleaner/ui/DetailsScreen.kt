@@ -281,7 +281,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth()
-                                .padding(4.dp, 8.dp, 4.dp, 0.dp)
+                                .padding(8.dp)
                                 .border(
                                     BorderStroke(
                                         2.dp,
@@ -310,7 +310,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                         append(s)
                                     }
                                 },
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.titleMedium,
                             )
                         }
                     }
@@ -424,7 +424,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                             Text(
                                 modifier = Modifier,
                                 text = "Nothing to clean",
-                                fontSize = 24.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium,
                             )
                         }
@@ -456,8 +456,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         withStyle(
                             SpanStyle(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 18.sp,
+                                fontSize = 16.sp,
                                 letterSpacing = 1.sp
                             )
                         ) {
@@ -465,7 +464,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         }
                     },
                     fontWeight = FontWeight.Medium,
-                    style = MaterialTheme.typography.headlineMedium
+                    style = MaterialTheme.typography.titleMedium
                 )
             }
         }
