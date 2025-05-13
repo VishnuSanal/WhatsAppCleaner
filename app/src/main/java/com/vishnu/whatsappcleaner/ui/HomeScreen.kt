@@ -19,6 +19,7 @@
 
 package com.vishnu.whatsappcleaner.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -77,7 +78,8 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
     ) {
         Column(
             Modifier.padding(top = 16.dp, bottom = 16.dp, start = 2.dp, end = 2.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Title(
                 Modifier
@@ -108,7 +110,16 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
                     }
                 }
 
-                is ViewState.Loading -> LazyColumn(Modifier.weight(1f)) {
+                is ViewState.Loading -> LazyColumn(
+                    Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    item {
+                        ListSizeHeader(
+                            modifier,
+                            directoryItem
+                        )
+                    }
                     items(ListDirectory.getDirectoryList(Constants.LIST_LOADING_INDICATION)) {
                         SingleCard(it, navController)
                     }
