@@ -21,21 +21,11 @@ package com.vishnu.whatsappcleaner.ui
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -44,19 +34,17 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -75,7 +63,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
@@ -90,17 +77,14 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
@@ -108,21 +92,17 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.vishnu.whatsappcleaner.Constants
 import com.vishnu.whatsappcleaner.MainViewModel
 import com.vishnu.whatsappcleaner.R
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
-import com.vishnu.whatsappcleaner.ui.theme.WhatsAppCleanerTheme
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 
@@ -161,18 +141,27 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
 
     val pagerState = rememberPagerState(
         initialPage = 0,
-        initialPageOffsetFraction = 0.0f,
-        pageCount = { tabs.size }
+        pageCount = {
+            if (listDirectory.hasSent) {
+                if (listDirectory.hasPrivate) 3
+                else 2
+            } else 1
+        }
     )
 
-    val listState = rememberLazyListState()
-    val gridState = rememberLazyGridState()
+    val gridStates = remember {
+        List(3) { LazyGridState() }
+    }
+    val listStates = remember {
+        List(3) { LazyListState() }
+    }
+
     val showHeader by remember {
         derivedStateOf {
             if (isGridView) {
-                gridState.firstVisibleItemIndex < 1
+                gridStates[pagerState.currentPage].firstVisibleItemIndex < 1
             } else {
-                listState.firstVisibleItemIndex < 1
+                listStates[pagerState.currentPage].firstVisibleItemIndex < 1
             }
         }
     }
@@ -220,7 +209,15 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 privateList.addAll(it)
             }
     }
-    
+
+    // Clearing selected items on tab change
+    LaunchedEffect(pagerState.currentPage) {
+        if (selectedItems.isNotEmpty() || isAllSelected) {
+            selectedItems.clear()
+            isAllSelected = false
+        }
+    }
+
     Scaffold(
         topBar = {
             DetailScreenTopBar(
@@ -248,7 +245,15 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header Banner
+            // Progress Indicator
+            if (isInProgress) LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(8.dp),
+            )
+
+            // Banner
             AnimatedVisibility(
                 visible = showHeader,
             ) {
@@ -267,23 +272,34 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 )
             }
 
-
-            // Sticky Tabs
-            TabRow(selectedTabIndex = pagerState.currentPage) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        text = { Text(title) },
-                        selected = pagerState.currentPage == index,
-                        onClick = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(index)
+            if (listDirectory.hasSent || listDirectory.hasPrivate) {
+                // Tabs
+                TabRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    selectedTabIndex = pagerState.currentPage,
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            text = {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                            },
+                            selected = pagerState.currentPage == index,
+                            onClick = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(index)
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
 
-            // HorizontalPager fills remaining space
+            // HorizontalPager
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -322,13 +338,11 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
                     // Grid or List
                     if (list.isNotEmpty()) {
                         if (isGridView) {
                             LazyVerticalGrid(
-                                state = gridState,
+                                state = gridStates[page],
                                 modifier = Modifier.fillMaxSize(),
                                 columns = GridCells.Fixed(3)
                             ) {
@@ -341,7 +355,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                             }
                         } else {
                             LazyColumn(
-                                state = listState,
+                                state = listStates[page],
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 items(list) {
@@ -381,8 +395,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
             CleanUpButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(Color.Black),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 navController = navController,
                 selectedItems = selectedItems,
                 onShowDialog = { showConfirmationDialog = true }
@@ -449,10 +462,10 @@ fun DetailScreenTopBar(
                     modifier = Modifier
                         .size(32.dp),
                     painter =
-                        if (isGridView)
-                            painterResource(id = R.drawable.ic_view_list)
-                        else
-                            painterResource(id = R.drawable.ic_grid_view),
+                    if (isGridView)
+                        painterResource(id = R.drawable.ic_view_list)
+                    else
+                        painterResource(id = R.drawable.ic_grid_view),
                     tint = MaterialTheme.colorScheme.primary,
                     contentDescription = "grid list view",
                 )
@@ -472,6 +485,7 @@ fun DetailScreenTopBar(
                     contentDescription = "sort",
                 )
             }
+            Spacer(modifier = Modifier.width(8.dp))
         }
     )
 }
@@ -487,7 +501,7 @@ fun CleanUpButton(
         modifier = modifier.padding(2.dp),
         colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         shape = RoundedCornerShape(64.dp),
-        contentPadding = PaddingValues(12.dp),
+        contentPadding = PaddingValues(8.dp),
         onClick = {
             if (selectedItems.isNotEmpty())
                 onShowDialog()
@@ -517,7 +531,6 @@ fun CleanUpButton(
         )
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -809,29 +822,4 @@ fun ConfirmationDialog(
             }
         }
     }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-private fun TopBarPreview() {
-
-    WhatsAppCleanerTheme {
-        CleanUpButton(
-            modifier = Modifier
-                .padding(8.dp)
-                .fillMaxWidth(),
-            navController = rememberNavController(),
-            selectedItems = emptyList(),
-            onShowDialog = {}
-        )
-    }
-
-
-//    DetailScreenTopBar(
-//        title = "WhatsApp Cleaner",
-//        toggleGridView = {},
-//        isGridView = true,
-//        onSortClick = {}
-//    )
 }
