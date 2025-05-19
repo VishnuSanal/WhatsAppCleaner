@@ -289,6 +289,10 @@ fun ItemGridCard(
         ) Modifier.shimmer()
         else Modifier
 
+        LaunchedEffect(isSelected) {
+            selected = isSelected
+        }
+
         Card(
             modifier = modifier
                 .fillMaxWidth()
