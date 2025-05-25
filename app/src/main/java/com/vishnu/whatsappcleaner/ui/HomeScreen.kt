@@ -25,9 +25,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -73,22 +75,16 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
         viewModel.getDirectoryList()
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Scaffold(
+        topBar = {
+            HomeTopBar(modifier = Modifier)
+        }
+    ) { contentPadding ->
         Column(
-            Modifier.padding(top = 16.dp, bottom = 16.dp, start = 2.dp, end = 2.dp),
+            Modifier.padding(contentPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Title(
-                Modifier
-                    .padding(0.dp)
-                    .align(Alignment.Start),
-
-                stringResource(R.string.app_name)
-            )
-
             val modifier = if (directoryItem.value is ViewState.Success) Modifier
             else Modifier.shimmer()
 
@@ -148,12 +144,16 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
 }
 
 @Composable
-fun ListSizeHeader(modifier: Modifier = Modifier, viewState: State<ViewState<Pair<String, List<ListDirectory>>>>) = Banner(
+fun ListSizeHeader(
+    modifier: Modifier = Modifier,
+    viewState: State<ViewState<Pair<String, List<ListDirectory>>>>
+) = Banner(
     modifier.padding(16.dp),
     buildAnnotatedString {
         when (viewState.value) {
             is ViewState.Success -> {
-                var size = (viewState.value as ViewState.Success<Pair<String, List<ListDirectory>>>).data.first
+                var size =
+                    (viewState.value as ViewState.Success<Pair<String, List<ListDirectory>>>).data.first
 
                 if (size.contains(" ")) {
                     val split = size.split(" ")
@@ -180,3 +180,17 @@ fun ListSizeHeader(modifier: Modifier = Modifier, viewState: State<ViewState<Pai
         }
     }
 )
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeTopBar(modifier: Modifier = Modifier) {
+    TopAppBar(
+        modifier = modifier,
+        title = {
+            Title(
+                modifier = Modifier,
+                text = stringResource(R.string.app_name)
+            )
+        }
+    )
+}

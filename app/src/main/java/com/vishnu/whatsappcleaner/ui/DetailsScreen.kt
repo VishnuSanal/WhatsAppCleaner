@@ -21,6 +21,7 @@ package com.vishnu.whatsappcleaner.ui
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -30,8 +31,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -65,8 +64,6 @@ import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -91,7 +88,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -102,7 +98,6 @@ import com.vishnu.whatsappcleaner.MainViewModel
 import com.vishnu.whatsappcleaner.R
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
-import kotlinx.coroutines.launch
 import java.text.DateFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,6 +140,8 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
             } else 1
         }
     )
+
+    var selectedTabIndex by remember { mutableStateOf(pagerState.currentPage) }
 
     val gridStates = remember {
         List(3) { LazyGridState() }
@@ -215,6 +212,16 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
         }
     }
 
+    LaunchedEffect(selectedTabIndex) {
+        if (selectedTabIndex != pagerState.currentPage) {
+            pagerState.animateScrollToPage(selectedTabIndex)
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        selectedTabIndex = pagerState.currentPage
+    }
+
     Scaffold(
         topBar = {
             DetailScreenTopBar(
@@ -235,11 +242,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(
-                    top = innerPadding.calculateTopPadding(),
-                    start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
-                    end = innerPadding.calculateEndPadding(LayoutDirection.Ltr)
-                ),
+                .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Progress Indicator
@@ -269,31 +272,18 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 )
             }
 
+            // tabs
             if (listDirectory.hasSent || listDirectory.hasPrivate) {
-                // Tabs
-                TabRow(
+                CustomTabs(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
-                    selectedTabIndex = pagerState.currentPage,
-                ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            text = {
-                                Text(
-                                    text = title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                            },
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            }
-                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    selectedItemIndex = pagerState.currentPage,
+                    items = tabs,
+                    onTabSelected = { index ->
+                        selectedTabIndex = index
                     }
-                }
+                )
             }
 
             // HorizontalPager
@@ -446,7 +436,9 @@ fun DetailScreenTopBar(
 ) {
     TopAppBar(
         modifier = modifier,
-        title = { Text(title) },
+        title = {
+            Title(text = title, modifier = Modifier)
+        },
         actions = {
             IconButton(
                 modifier = Modifier
