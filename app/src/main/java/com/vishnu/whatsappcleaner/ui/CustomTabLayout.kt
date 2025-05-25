@@ -50,21 +50,6 @@ import androidx.compose.ui.unit.dp
 import com.vishnu.whatsappcleaner.ui.theme.WhatsAppCleanerTheme
 
 @Composable
-fun CustomTabs(
-    modifier: Modifier = Modifier,
-    items: List<String>,
-    selectedItemIndex: Int,
-    onTabSelected: (index: Int) -> Unit,
-) {
-    CustomTabLayout(
-        modifier = modifier,
-        items = items,
-        selectedItemIndex = selectedItemIndex,
-        onTabSelected = onTabSelected,
-    )
-}
-
-@Composable
 fun CustomTabLayout(
     modifier: Modifier = Modifier,
     selectedItemIndex: Int,
@@ -169,7 +154,7 @@ private fun TabIndicator(
 @Composable
 private fun CustomTabPreview() {
     WhatsAppCleanerTheme {
-        CustomTabs(
+        CustomTabLayout(
             modifier = Modifier.padding(12.dp),
             items = listOf("Tab 1", "Tab 2", "Tab 3"),
             selectedItemIndex = 0,

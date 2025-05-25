@@ -19,7 +19,6 @@
 
 package com.vishnu.whatsappcleaner.ui
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -77,7 +76,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -128,8 +126,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     var isAllSelected by remember { mutableStateOf(false) }
 
     val tabs = listOf("Received", "Sent", "Private")
-
-    val coroutineScope = rememberCoroutineScope()
 
     val pagerState = rememberPagerState(
         initialPage = 0,
@@ -274,7 +270,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
 
             // tabs
             if (listDirectory.hasSent || listDirectory.hasPrivate) {
-                CustomTabs(
+                CustomTabLayout(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -298,8 +294,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                     1 -> sentList
                     else -> privateList
                 }
-
-//                currentList = list
 
                 Column(
                     Modifier
@@ -477,48 +471,6 @@ fun DetailScreenTopBar(
             Spacer(modifier = Modifier.width(8.dp))
         }
     )
-}
-
-@Composable
-fun CleanUpButton(
-    modifier: Modifier = Modifier,
-    navController: NavHostController,
-    selectedItems: List<ListFile>,
-    onShowDialog: () -> Unit
-) {
-    TextButton(
-        modifier = modifier.padding(2.dp),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        shape = RoundedCornerShape(64.dp),
-        contentPadding = PaddingValues(8.dp),
-        onClick = {
-            if (selectedItems.isNotEmpty())
-                onShowDialog()
-            else
-                Toast.makeText(
-                    navController.context,
-                    "Select files to cleanup!",
-                    Toast.LENGTH_SHORT
-                ).show()
-        }
-    ) {
-        Text(
-            text = buildAnnotatedString {
-                withStyle(
-                    SpanStyle(
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 18.sp,
-                        letterSpacing = 1.sp
-                    )
-                ) {
-                    append("Cleanup")
-                }
-            },
-            fontWeight = FontWeight.Medium,
-            style = MaterialTheme.typography.headlineMedium
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
