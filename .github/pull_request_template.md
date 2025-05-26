@@ -4,7 +4,7 @@
 
 <!-- Please choose the relevant option -->
 
- - **Fixes** #---- <!-- to automatically close the linked issue -->
+ - Fixes #---- <!-- to automatically close the linked issue -->
  - **Addresses** #---- <!-- to link the issue but not close - work pending etc. -->
 
 ## Tests
