@@ -313,7 +313,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         )
                     }
 
-                    // Grid or List
                     if (list.isNotEmpty()) {
                         if (isGridView) {
                             LazyVerticalGrid(
