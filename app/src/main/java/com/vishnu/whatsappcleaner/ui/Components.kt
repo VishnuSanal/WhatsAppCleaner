@@ -23,6 +23,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -677,41 +678,48 @@ fun CheckedIcon(modifier: Modifier = Modifier) {
 @Composable
 fun CleanUpButton(
     modifier: Modifier = Modifier,
-    navController: NavHostController,
     selectedItems: List<ListFile>,
     onShowDialog: () -> Unit
 ) {
+    val isEnabled = selectedItems.isNotEmpty()
+
+    val containerColor by animateColorAsState(
+        targetValue = if (isEnabled)
+            MaterialTheme.colorScheme.primary
+        else
+            MaterialTheme.colorScheme.surfaceVariant,
+        label = "ContainerColorAnimation"
+    )
+
+    val contentColor by animateColorAsState(
+        targetValue = if (isEnabled)
+            MaterialTheme.colorScheme.onPrimary
+        else
+            MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "ContentColorAnimation"
+    )
+
     TextButton(
         modifier = modifier.padding(2.dp),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        colors = ButtonDefaults.textButtonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = containerColor,
+            disabledContentColor = contentColor
+        ),
         shape = RoundedCornerShape(64.dp),
         contentPadding = PaddingValues(8.dp),
+        enabled = isEnabled,
         onClick = {
-            if (selectedItems.isNotEmpty())
-                onShowDialog()
-            else
-                Toast.makeText(
-                    navController.context,
-                    "Select files to cleanup!",
-                    Toast.LENGTH_SHORT
-                ).show()
+            if (selectedItems.isNotEmpty()) onShowDialog()
         }
     ) {
         Text(
-            text = buildAnnotatedString {
-                withStyle(
-                    SpanStyle(
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 18.sp,
-                        letterSpacing = 1.sp
-                    )
-                ) {
-                    append("Cleanup")
-                }
-            },
+            text = "Cleanup",
             fontWeight = FontWeight.Medium,
-            style = MaterialTheme.typography.headlineMedium
+            style = MaterialTheme.typography.titleLarge,
+            fontSize = 18.sp,
+            letterSpacing = 1.sp
         )
     }
 }

@@ -368,7 +368,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                navController = navController,
                 selectedItems = selectedItems,
                 onShowDialog = { showConfirmationDialog = true }
             )
