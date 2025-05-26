@@ -317,7 +317,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         if (isGridView) {
                             LazyVerticalGrid(
                                 state = gridStates[page],
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier.fillMaxSize().padding(8.dp),
                                 columns = GridCells.Fixed(3)
                             ) {
                                 items(list) {
@@ -330,7 +330,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         } else {
                             LazyColumn(
                                 state = listStates[page],
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize().padding(8.dp)
                             ) {
                                 items(list) {
                                     ItemListCard(it, navController, selectedItems.contains(it)) {
