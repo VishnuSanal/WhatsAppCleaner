@@ -19,9 +19,8 @@
 
 package com.vishnu.whatsappcleaner.ui
 
-import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -38,7 +37,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -59,24 +60,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -96,8 +96,6 @@ import com.vishnu.whatsappcleaner.MainViewModel
 import com.vishnu.whatsappcleaner.R
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.launch
 import java.text.DateFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,6 +124,37 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
 
     val isGridView by viewModel.isGridView.collectAsState()
     var isAllSelected by remember { mutableStateOf(false) }
+
+    val tabs = listOf("Received", "Sent", "Private")
+
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = {
+            if (listDirectory.hasSent) {
+                if (listDirectory.hasPrivate) 3
+                else 2
+            } else 1
+        }
+    )
+
+    var selectedTabIndex by remember { mutableStateOf(pagerState.currentPage) }
+
+    val gridStates = remember {
+        List(3) { LazyGridState() }
+    }
+    val listStates = remember {
+        List(3) { LazyListState() }
+    }
+
+    val showHeader by remember {
+        derivedStateOf {
+            if (isGridView) {
+                gridStates[pagerState.currentPage].firstVisibleItemIndex < 1
+            } else {
+                listStates[pagerState.currentPage].firstVisibleItemIndex < 1
+            }
+        }
+    }
 
     LaunchedEffect(
         isInProgress,
@@ -171,184 +200,46 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
             }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
-            Modifier.padding(top = 16.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Title(
-                    Modifier
-                        .padding(0.dp),
-                    listDirectory.name
-                )
+    LaunchedEffect(pagerState.currentPage) {
+        if (selectedItems.isNotEmpty() || isAllSelected) {
+            selectedItems.clear()
+            isAllSelected = false
+        }
+    }
 
-                Spacer(Modifier.weight(1f))
+    LaunchedEffect(selectedTabIndex) {
+        if (selectedTabIndex != pagerState.currentPage) {
+            pagerState.animateScrollToPage(selectedTabIndex)
+        }
+    }
 
-                IconButton(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(horizontal = 4.dp),
-                    onClick = {
-                        viewModel.toggleViewType()
-                    }
-                ) {
-                    Icon(
-                        modifier = Modifier
-                            .size(32.dp),
-                        painter =
-                        if (isGridView)
-                            painterResource(id = R.drawable.ic_view_list)
-                        else
-                            painterResource(id = R.drawable.ic_grid_view),
-                        tint = MaterialTheme.colorScheme.primary,
-                        contentDescription = "grid list view",
-                    )
-                }
+    LaunchedEffect(pagerState.currentPage) {
+        selectedTabIndex = pagerState.currentPage
+    }
 
-                IconButton(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(horizontal = 4.dp),
-                    onClick = {
-                        showSortDialog = true
-
-                        // resetting everything for safety -- accidental selction & deletion
-                        dateRangePickerState.setSelection(null, null)
-                        selectedItems.clear()
-                        isAllSelected = false
-                    }
-                ) {
-                    Icon(
-                        modifier = Modifier
-                            .size(32.dp),
-                        painter = painterResource(id = R.drawable.ic_sort),
-                        tint = MaterialTheme.colorScheme.primary,
-                        contentDescription = "sort",
-                    )
-                }
-            }
-
-            Banner(
-                Modifier.padding(16.dp),
-                buildAnnotatedString {
-                    var size = listDirectory.size
-
-                    if (size.contains(" ")) {
-                        val split = size.split(" ")
-                        withStyle(SpanStyle(fontSize = 24.sp)) {
-                            append(split.get(0))
-                        }
-                        withStyle(SpanStyle(fontSize = 18.sp)) {
-                            append(" ${split.get(1)}")
-                        }
-                    } else {
-                        withStyle(SpanStyle(fontSize = 24.sp)) {
-                            append(size)
-                        }
-                    }
-                }
-            )
-
-            val pagerState = rememberPagerState(pageCount = {
-                if (listDirectory.hasSent)
-                    if (listDirectory.hasPrivate) 3
-                    else 2
-                else 1
-            })
-
-            var currentList: SnapshotStateList<ListFile> = fileList
-            val coroutineScope = rememberCoroutineScope()
-
-            if (listDirectory.hasSent || listDirectory.hasPrivate)
-                Row(
-                    modifier = Modifier.padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    val arr = arrayListOf("Received")
-
-                    if (listDirectory.hasSent)
-                        arr.add("Sent")
-
-                    if (listDirectory.hasPrivate)
-                        arr.add("Private")
-
-                    for (s in arr) {
-                        TextButton(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(4.dp, 8.dp, 4.dp, 0.dp)
-                                .border(
-                                    BorderStroke(
-                                        2.dp,
-                                        if (arr[pagerState.settledPage] != s) MaterialTheme.colorScheme.primaryContainer
-                                        else MaterialTheme.colorScheme.background,
-                                    ),
-                                    RoundedCornerShape(64.dp),
-                                ),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (arr[pagerState.settledPage] == s) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.background
-                            ),
-                            shape = RoundedCornerShape(64.dp),
-                            contentPadding = PaddingValues(vertical = 12.dp),
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.scrollToPage(
-                                        arr.indexOf(s)
-                                    )
-                                }
-                            }
-                        ) {
-                            Text(
-                                text = buildAnnotatedString {
-                                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.onPrimaryContainer)) {
-                                        append(s)
-                                    }
-                                },
-                                style = MaterialTheme.typography.headlineSmall,
-                            )
-                        }
-                    }
-                }
-
-            IconButton(
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .padding(8.dp)
-                    .size(32.dp)
-                    .padding(4.dp),
-                onClick = {
-                    isAllSelected = !isAllSelected
-
-                    if (isAllSelected)
-                        selectedItems.addAll(currentList.toList())
-                    else
-                        selectedItems.clear()
-                }
-            ) {
-                Icon(
-                    modifier = Modifier
-                        .size(32.dp),
-                    painter = painterResource(id = if (isAllSelected) R.drawable.check_circle_filled else R.drawable.check_circle),
-                    tint = MaterialTheme.colorScheme.primary,
-                    contentDescription = "select all",
-                )
-            }
-
-            LaunchedEffect(pagerState) {
-                snapshotFlow {
-                    pagerState.currentPage
-                }.distinctUntilChanged().collect { _ ->
+    Scaffold(
+        topBar = {
+            DetailScreenTopBar(
+                title = listDirectory.name,
+                toggleGridView = {
+                    viewModel.toggleViewType()
+                },
+                isGridView = isGridView,
+                onSortClick = {
+                    showSortDialog = true
+                    dateRangePickerState.setSelection(null, null)
                     selectedItems.clear()
                     isAllSelected = false
                 }
-            }
-
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             if (isInProgress) LinearProgressIndicator(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -356,56 +247,99 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                     .padding(8.dp),
             )
 
-            key(isAllSelected) {
-                HorizontalPager(
-                    modifier = Modifier.weight(1f),
-                    state = pagerState
-                ) { page ->
+            AnimatedVisibility(
+                visible = showHeader,
+            ) {
+                Banner(
+                    Modifier.padding(16.dp),
+                    buildAnnotatedString {
+                        val size = listDirectory.size
+                        val parts = size.split(" ")
+                        if (parts.size == 2) {
+                            withStyle(SpanStyle(fontSize = 24.sp)) { append(parts[0]) }
+                            withStyle(SpanStyle(fontSize = 18.sp)) { append(" ${parts[1]}") }
+                        } else {
+                            withStyle(SpanStyle(fontSize = 24.sp)) { append(size) }
+                        }
+                    }
+                )
+            }
 
-                    if (pagerState.currentPage == 0) {
-                        currentList = fileList
-                    } else if (pagerState.currentPage == 1) {
-                        currentList = sentList
-                    } else {
-                        currentList = privateList
+            if (listDirectory.hasSent || listDirectory.hasPrivate) {
+                CustomTabLayout(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    selectedItemIndex = pagerState.currentPage,
+                    items = tabs,
+                    onTabSelected = { index ->
+                        selectedTabIndex = index
+                    }
+                )
+            }
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) { page ->
+                val list = when (page) {
+                    0 -> fileList
+                    1 -> sentList
+                    else -> privateList
+                }
+
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                ) {
+                    IconButton(
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(8.dp)
+                            .size(32.dp),
+                        onClick = {
+                            isAllSelected = !isAllSelected
+                            if (isAllSelected) selectedItems.addAll(list)
+                            else selectedItems.clear()
+                        }
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(32.dp),
+                            painter = painterResource(id = if (isAllSelected) R.drawable.check_circle_filled else R.drawable.check_circle),
+                            tint = MaterialTheme.colorScheme.primary,
+                            contentDescription = "select all"
+                        )
                     }
 
-                    if (currentList.isNotEmpty()) {
-                        if (isGridView)
+                    if (list.isNotEmpty()) {
+                        if (isGridView) {
                             LazyVerticalGrid(
+                                state = gridStates[page],
                                 modifier = Modifier.fillMaxSize(),
-                                columns = GridCells.Fixed(3),
+                                columns = GridCells.Fixed(3)
                             ) {
-                                items(currentList) {
-                                    ItemGridCard(
-                                        it,
-                                        navController,
-                                        isSelected = selectedItems.contains(it)
-                                    ) {
-                                        if (selectedItems.contains(it))
-                                            selectedItems.remove(it)
-                                        else
-                                            selectedItems.add(it)
+                                items(list) {
+                                    ItemGridCard(it, navController, selectedItems.contains(it)) {
+                                        if (selectedItems.contains(it)) selectedItems.remove(it)
+                                        else selectedItems.add(it)
                                     }
                                 }
                             }
-                        else
+                        } else {
                             LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
+                                state = listStates[page],
+                                modifier = Modifier.fillMaxSize()
                             ) {
-                                items(currentList) {
-                                    ItemListCard(
-                                        it,
-                                        navController,
-                                        isSelected = selectedItems.contains(it)
-                                    ) {
-                                        if (selectedItems.contains(it))
-                                            selectedItems.remove(it)
-                                        else
-                                            selectedItems.add(it)
+                                items(list) {
+                                    ItemListCard(it, navController, selectedItems.contains(it)) {
+                                        if (selectedItems.contains(it)) selectedItems.remove(it)
+                                        else selectedItems.add(it)
                                     }
                                 }
                             }
+                        }
                     } else {
                         Column(
                             modifier = Modifier.fillMaxSize(),
@@ -420,54 +354,24 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                 contentDescription = "empty",
                                 tint = MaterialTheme.colorScheme.secondaryContainer
                             )
-
                             Text(
-                                modifier = Modifier,
                                 text = "Nothing to clean",
                                 fontSize = 24.sp,
-                                fontWeight = FontWeight.Medium,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
                 }
             }
 
-            TextButton(
+            CleanUpButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                shape = RoundedCornerShape(64.dp),
-                contentPadding = PaddingValues(12.dp),
-                onClick = {
-                    if (selectedItems.isNotEmpty())
-                        showConfirmationDialog = true
-                    else
-                        Toast.makeText(
-                            navController.context,
-                            "Select files to cleanup!",
-                            Toast.LENGTH_SHORT
-                        )
-                            .show()
-                }
-            ) {
-                Text(
-                    text = buildAnnotatedString {
-                        withStyle(
-                            SpanStyle(
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 18.sp,
-                                letterSpacing = 1.sp
-                            )
-                        ) {
-                            append("Cleanup")
-                        }
-                    },
-                    fontWeight = FontWeight.Medium,
-                    style = MaterialTheme.typography.headlineMedium
-                )
-            }
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                navController = navController,
+                selectedItems = selectedItems,
+                onShowDialog = { showConfirmationDialog = true }
+            )
         }
     }
 
@@ -504,6 +408,60 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
             navController
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DetailScreenTopBar(
+    modifier: Modifier = Modifier,
+    title: String = "",
+    toggleGridView: () -> Unit,
+    isGridView: Boolean,
+    onSortClick: () -> Unit
+) {
+    TopAppBar(
+        modifier = modifier,
+        title = {
+            Title(text = title, modifier = Modifier)
+        },
+        actions = {
+            IconButton(
+                modifier = Modifier
+                    .size(32.dp),
+                onClick = {
+                    toggleGridView()
+                }
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .size(32.dp),
+                    painter =
+                    if (isGridView)
+                        painterResource(id = R.drawable.ic_view_list)
+                    else
+                        painterResource(id = R.drawable.ic_grid_view),
+                    tint = MaterialTheme.colorScheme.primary,
+                    contentDescription = "grid list view",
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            IconButton(
+                modifier = Modifier
+                    .size(32.dp),
+                onClick = { onSortClick() }
+            ) {
+                Icon(
+                    modifier = Modifier.size(32.dp),
+                    painter = painterResource(id = R.drawable.ic_sort),
+                    tint = MaterialTheme.colorScheme.primary,
+                    contentDescription = "sort",
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

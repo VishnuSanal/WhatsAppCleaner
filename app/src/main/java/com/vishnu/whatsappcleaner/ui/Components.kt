@@ -32,6 +32,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -44,11 +45,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -288,6 +291,10 @@ fun ItemGridCard(
                 .contains(Constants.LIST_LOADING_INDICATION)
         ) Modifier.shimmer()
         else Modifier
+
+        LaunchedEffect(isSelected) {
+            selected = isSelected
+        }
 
         Card(
             modifier = modifier
@@ -663,6 +670,48 @@ fun CheckedIcon(modifier: Modifier = Modifier) {
             painter = painterResource(id = R.drawable.check_circle_filled),
             tint = MaterialTheme.colorScheme.primary,
             contentDescription = "checkbox"
+        )
+    }
+}
+
+@Composable
+fun CleanUpButton(
+    modifier: Modifier = Modifier,
+    navController: NavHostController,
+    selectedItems: List<ListFile>,
+    onShowDialog: () -> Unit
+) {
+    TextButton(
+        modifier = modifier.padding(2.dp),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        shape = RoundedCornerShape(64.dp),
+        contentPadding = PaddingValues(8.dp),
+        onClick = {
+            if (selectedItems.isNotEmpty())
+                onShowDialog()
+            else
+                Toast.makeText(
+                    navController.context,
+                    "Select files to cleanup!",
+                    Toast.LENGTH_SHORT
+                ).show()
+        }
+    ) {
+        Text(
+            text = buildAnnotatedString {
+                withStyle(
+                    SpanStyle(
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 18.sp,
+                        letterSpacing = 1.sp
+                    )
+                ) {
+                    append("Cleanup")
+                }
+            },
+            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.headlineMedium
         )
     }
 }
