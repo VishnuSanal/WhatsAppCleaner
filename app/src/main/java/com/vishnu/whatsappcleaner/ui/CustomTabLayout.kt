@@ -56,7 +56,6 @@ fun CustomTabLayout(
     items: List<String>,
     onTabSelected: (index: Int) -> Unit,
 ) {
-    // Get screen width in dp
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val tabWidth = (screenWidth - 32.dp) / items.size
 

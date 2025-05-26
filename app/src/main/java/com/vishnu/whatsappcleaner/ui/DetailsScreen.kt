@@ -200,7 +200,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
             }
     }
 
-    // Clearing selected items on tab change
     LaunchedEffect(pagerState.currentPage) {
         if (selectedItems.isNotEmpty() || isAllSelected) {
             selectedItems.clear()
@@ -241,7 +240,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Progress Indicator
             if (isInProgress) LinearProgressIndicator(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -249,7 +247,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                     .padding(8.dp),
             )
 
-            // Banner
             AnimatedVisibility(
                 visible = showHeader,
             ) {
@@ -268,7 +265,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 )
             }
 
-            // tabs
             if (listDirectory.hasSent || listDirectory.hasPrivate) {
                 CustomTabLayout(
                     modifier = Modifier
@@ -282,7 +278,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 )
             }
 
-            // HorizontalPager
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -299,7 +294,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                     Modifier
                         .fillMaxSize()
                 ) {
-                    // Select All Icon
                     IconButton(
                         modifier = Modifier
                             .align(Alignment.End)
@@ -348,7 +342,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                             }
                         }
                     } else {
-                        // Empty state
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.Center,
@@ -372,7 +365,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 }
             }
 
-            // Clean-up button
             CleanUpButton(
                 modifier = Modifier
                     .fillMaxWidth()
