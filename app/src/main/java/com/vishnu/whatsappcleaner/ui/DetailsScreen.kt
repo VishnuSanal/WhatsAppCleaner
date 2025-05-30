@@ -294,23 +294,25 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                     Modifier
                         .fillMaxSize()
                 ) {
-                    IconButton(
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .padding(8.dp)
-                            .size(32.dp),
-                        onClick = {
-                            isAllSelected = !isAllSelected
-                            if (isAllSelected) selectedItems.addAll(list)
-                            else selectedItems.clear()
+                    if (list.isNotEmpty()) {
+                        IconButton(
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .padding(8.dp)
+                                .size(32.dp),
+                            onClick = {
+                                isAllSelected = !isAllSelected
+                                if (isAllSelected) selectedItems.addAll(list)
+                                else selectedItems.clear()
+                            }
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(32.dp),
+                                painter = painterResource(id = if (isAllSelected) R.drawable.check_circle_filled else R.drawable.check_circle),
+                                tint = MaterialTheme.colorScheme.primary,
+                                contentDescription = "select all"
+                            )
                         }
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(32.dp),
-                            painter = painterResource(id = if (isAllSelected) R.drawable.check_circle_filled else R.drawable.check_circle),
-                            tint = MaterialTheme.colorScheme.primary,
-                            contentDescription = "select all"
-                        )
                     }
 
                     if (list.isNotEmpty()) {
