@@ -290,13 +290,11 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                     else -> privateList
                 }
 
-                val hasFiles = list.isNotEmpty()
-
                 Column(
                     Modifier
                         .fillMaxSize()
                 ) {
-                    if (hasFiles) {
+                    if (list.isNotEmpty()) {
                         IconButton(
                             modifier = Modifier
                                 .align(Alignment.End)
