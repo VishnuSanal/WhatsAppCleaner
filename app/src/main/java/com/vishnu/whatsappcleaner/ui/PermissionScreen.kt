@@ -19,15 +19,15 @@
 
 package com.vishnu.whatsappcleaner.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -49,12 +49,10 @@ fun PermissionScreen(
     requestPermission: () -> Unit,
     chooseDirectory: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(Modifier.padding(horizontal = 8.dp)) {
+    Scaffold(
+        Modifier.background(MaterialTheme.colorScheme.background)
+    ) { contentPadding ->
+        Column(Modifier.padding(contentPadding)) {
             Text(
                 modifier = Modifier.padding(16.dp, 32.dp, 16.dp, 0.dp),
                 text = "Welcome!",
