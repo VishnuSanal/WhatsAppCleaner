@@ -22,7 +22,6 @@ package com.vishnu.whatsappcleaner
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -39,8 +38,26 @@ import kotlinx.coroutines.launch
 import java.util.Date
 
 class MainViewModel(private val application: Application) : AndroidViewModel(application) {
+    private val _fileList = MutableStateFlow<List<ListFile>>(emptyList())
+    val fileList: StateFlow<List<ListFile>> = _fileList.asStateFlow()
 
-    private val contentResolver = application.contentResolver
+    private val _sentList = MutableStateFlow<List<ListFile>>(emptyList())
+    val sentList: StateFlow<List<ListFile>> = _sentList.asStateFlow()
+
+    private val _privateList = MutableStateFlow<List<ListFile>>(emptyList())
+    val privateList: StateFlow<List<ListFile>> = _privateList.asStateFlow()
+
+    private val _isInProgress = MutableStateFlow(false)
+    val isInProgress: StateFlow<Boolean> = _isInProgress.asStateFlow()
+
+    private val _directories = MutableStateFlow<List<String>>(emptyList())
+    val directories: StateFlow<List<String>> = _directories
+
+    private val _homeUri = MutableStateFlow<String?>("")
+    val homeUri: StateFlow<String?> = _homeUri.asStateFlow()
+
+    private val _fileReloadTrigger = MutableStateFlow(false)
+    val fileReloadTrigger: StateFlow<Boolean> = _fileReloadTrigger.asStateFlow()
 
     private val storeData = StoreData(application.applicationContext)
 
@@ -79,12 +96,10 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
         }
     }
 
-    fun getHomeUri(): MutableLiveData<String> {
-        val mutableLiveData = MutableLiveData<String>()
+    fun getHomeUri() {
         viewModelScope.launch(Dispatchers.Default) {
-            mutableLiveData.postValue(storeData.get(Constants.WHATSAPP_HOME_URI))
+            _homeUri.value = storeData.get(Constants.WHATSAPP_HOME_URI)
         }
-        return mutableLiveData
     }
 
     fun getDirectoryList() {
@@ -104,77 +119,72 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
     }
 
     fun getFileList(
+        target: Target,
         path: String,
         sortBy: String,
         isSortDescending: Boolean,
         filterStartDate: Long?,
-        filterEndDate: Long?,
-    ): MutableLiveData<ArrayList<ListFile>> {
-        Log.i("vishnu", "getFileList: $path")
-
-        val mutableLiveData = MutableLiveData<ArrayList<ListFile>>(
-            FileRepository.getLoadingList()
-        )
-
+        filterEndDate: Long?
+    ) {
         viewModelScope.launch(Dispatchers.Default) {
             val fileList = FileRepository.getFileList(application, path)
 
             fileList.sortWith(
-                if (sortBy.contains("Name"))
-                    compareBy { it.name }
-                else if (sortBy.contains("Size"))
-                    compareBy { it.length() }
-                else
-                    compareBy { it.lastModified() }
+                when {
+                    sortBy.contains("Name") -> compareBy { it.name }
+                    sortBy.contains("Size") -> compareBy { it.length() }
+                    else -> compareBy { it.lastModified() }
+                }
             )
 
             if (sortBy.contains("Date") && filterStartDate != null && filterEndDate != null) {
                 val filteredList = fileList.filter {
                     val lastModified = Date(it.lastModified())
-
-                    lastModified.after(Date(filterStartDate)) && lastModified.before(Date(filterEndDate))
+                    lastModified.after(Date(filterStartDate)) && lastModified.before(
+                        Date(
+                            filterEndDate
+                        )
+                    )
                 }
-
                 fileList.clear()
                 fileList.addAll(filteredList)
             }
 
-            if (isSortDescending)
-                fileList.reverse()
+            if (isSortDescending) fileList.reverse()
 
-            mutableLiveData.postValue(fileList)
+            when (target) {
+                Target.Received -> _fileList.value = fileList
+                Target.Sent -> _sentList.value = fileList
+                Target.Private -> _privateList.value = fileList
+            }
         }
-
-        return mutableLiveData
     }
 
-    fun listDirectories(path: String): MutableLiveData<ArrayList<String>> {
+    fun listDirectories(path: String) {
         Log.i("vishnu", "listDirectories: $path")
 
-        val mutableLiveData = MutableLiveData<ArrayList<String>>()
-
         viewModelScope.launch(Dispatchers.Default) {
-            mutableLiveData.postValue(
-                FileRepository.getDirectoryList(path)
-            )
+            val dirList = FileRepository.getDirectoryList(path)
+            _directories.value = dirList
         }
-
-        return mutableLiveData
     }
 
-    fun delete(fileList: List<ListFile>): MutableLiveData<Boolean> {
+    fun delete(fileList: List<ListFile>) {
         Log.i("vishnu", "delete() called with: fileList = $fileList")
 
-        val mutableLiveData = MutableLiveData<Boolean>(true)
-
+        _isInProgress.value = true
         viewModelScope.launch(Dispatchers.IO) {
-            mutableLiveData.postValue(
-                FileRepository.deleteFiles(fileList)
-            )
+            FileRepository.deleteFiles(fileList)
+            _isInProgress.value = false
+            _fileReloadTrigger.value = !_fileReloadTrigger.value
         }
-
-        return mutableLiveData
     }
+}
+
+sealed class Target {
+    data object Received : Target()
+    data object Sent : Target()
+    data object Private : Target()
 }
 
 sealed class ViewState<out T> {

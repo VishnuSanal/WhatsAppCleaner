@@ -94,6 +94,7 @@ import androidx.navigation.NavHostController
 import com.vishnu.whatsappcleaner.Constants
 import com.vishnu.whatsappcleaner.MainViewModel
 import com.vishnu.whatsappcleaner.R
+import com.vishnu.whatsappcleaner.Target
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
 import java.text.DateFormat
@@ -107,22 +108,21 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
 
     if (listDirectory == null) return Surface {}
 
-    var fileList = remember { mutableStateListOf<ListFile>() }
-    var sentList = remember { mutableStateListOf<ListFile>() }
-    var privateList = remember { mutableStateListOf<ListFile>() }
+    val fileList by viewModel.fileList.collectAsState()
+    val sentList by viewModel.sentList.collectAsState()
+    val privateList by viewModel.privateList.collectAsState()
+    val isInProgress by viewModel.isInProgress.collectAsState()
+    val isGridView by viewModel.isGridView.collectAsState()
+    val fileReloadTrigger by viewModel.fileReloadTrigger.collectAsState()
 
     var selectedItems = remember { mutableStateListOf<ListFile>() }
-
     var sortBy = remember { mutableStateOf("Date") }
     var isSortDescending = remember { mutableStateOf(true) }
 
     val dateRangePickerState = rememberDateRangePickerState()
 
-    var isInProgress by remember { mutableStateOf(false) }
     var showConfirmationDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
-
-    val isGridView by viewModel.isGridView.collectAsState()
     var isAllSelected by remember { mutableStateOf(false) }
 
     val tabs = listOf("Received", "Sent", "Private")
@@ -157,47 +157,42 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     }
 
     LaunchedEffect(
-        isInProgress,
+        fileReloadTrigger,
         sortBy.value,
         isSortDescending.value,
         dateRangePickerState.selectedStartDateMillis,
         dateRangePickerState.selectedEndDateMillis
     ) {
         viewModel.getFileList(
+            Target.Received,
             listDirectory.path,
             sortBy.value,
             isSortDescending.value,
             dateRangePickerState.selectedStartDateMillis,
             dateRangePickerState.selectedEndDateMillis
         )
-            .observeForever {
-                fileList.clear()
-                fileList.addAll(it)
-            }
 
-        if (listDirectory.hasSent) viewModel.getFileList(
-            "${listDirectory.path}/Sent",
-            sortBy.value,
-            isSortDescending.value,
-            dateRangePickerState.selectedStartDateMillis,
-            dateRangePickerState.selectedEndDateMillis
-        )
-            .observeForever {
-                sentList.clear()
-                sentList.addAll(it)
-            }
+        if (listDirectory.hasSent) {
+            viewModel.getFileList(
+                Target.Sent,
+                "${listDirectory.path}/Sent",
+                sortBy.value,
+                isSortDescending.value,
+                dateRangePickerState.selectedStartDateMillis,
+                dateRangePickerState.selectedEndDateMillis
+            )
+        }
 
-        if (listDirectory.hasPrivate) viewModel.getFileList(
-            "${listDirectory.path}/Private",
-            sortBy.value,
-            isSortDescending.value,
-            dateRangePickerState.selectedStartDateMillis,
-            dateRangePickerState.selectedEndDateMillis
-        )
-            .observeForever {
-                privateList.clear()
-                privateList.addAll(it)
-            }
+        if (listDirectory.hasPrivate) {
+            viewModel.getFileList(
+                Target.Private,
+                "${listDirectory.path}/Private",
+                sortBy.value,
+                isSortDescending.value,
+                dateRangePickerState.selectedStartDateMillis,
+                dateRangePickerState.selectedEndDateMillis
+            )
+        }
     }
 
     LaunchedEffect(pagerState.currentPage) {
@@ -319,7 +314,9 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         if (isGridView) {
                             LazyVerticalGrid(
                                 state = gridStates[page],
-                                modifier = Modifier.fillMaxSize().padding(8.dp),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(8.dp),
                                 columns = GridCells.Fixed(3)
                             ) {
                                 items(list) {
@@ -332,7 +329,9 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         } else {
                             LazyColumn(
                                 state = listStates[page],
-                                modifier = Modifier.fillMaxSize().padding(8.dp)
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(8.dp)
                             ) {
                                 items(list) {
                                     ItemListCard(it, navController, selectedItems.contains(it)) {
@@ -392,16 +391,10 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
         ConfirmationDialog(
             onDismissRequest = {
                 showConfirmationDialog = false
+                selectedItems.clear()
             },
             onConfirmation = {
                 viewModel.delete(selectedItems.toList())
-                    .observeForever {
-                        isInProgress = it
-                        navController.previousBackStackEntry?.savedStateHandle?.apply {
-                            set(Constants.FORCE_RELOAD_FILE_LIST, true)
-                        }
-                    }
-
                 showConfirmationDialog = false
                 selectedItems.clear()
             },
