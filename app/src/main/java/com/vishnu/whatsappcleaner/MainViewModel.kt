@@ -137,14 +137,19 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
                 }
             )
 
-            if (sortBy.contains("Date") && filterStartDate != null && filterEndDate != null) {
+            if (
+                sortBy.contains("Date") &&
+                filterStartDate != null &&
+                filterEndDate != null
+            ) {
                 val filteredList = fileList.filter {
                     val lastModified = Date(it.lastModified())
-                    lastModified.after(Date(filterStartDate)) && lastModified.before(
-                        Date(
-                            filterEndDate
+                    lastModified.after(Date(filterStartDate)) &&
+                        lastModified.before(
+                            Date(
+                                filterEndDate
+                            )
                         )
-                    )
                 }
                 fileList.clear()
                 fileList.addAll(filteredList)
