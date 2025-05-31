@@ -35,7 +35,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -64,38 +63,40 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK && result.data?.data?.path != null) {
-                val relativePath = result.data!!.data!!.path!!.split(":")[1]
-                val absolutePath = Environment.getExternalStorageDirectory().absolutePath + File.separator + relativePath
+        val resultLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == RESULT_OK && result.data?.data?.path != null) {
+                    val relativePath = result.data!!.data!!.path!!.split(":")[1]
+                    val absolutePath =
+                        Environment.getExternalStorageDirectory().absolutePath + File.separator + relativePath
 
-                viewModel.listDirectories(absolutePath)
+                    viewModel.listDirectories(absolutePath)
 
-                lifecycleScope.launch {
-                    repeatOnLifecycle(Lifecycle.State.STARTED) {
-                        viewModel.directories.collect { dirList ->
-                            if (dirList.toString().contains("/Media")) {
-                                contentResolver.takePersistableUriPermission(
-                                    result.data!!.data!!,
-                                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                                )
+                    lifecycleScope.launch {
+                        repeatOnLifecycle(Lifecycle.State.STARTED) {
+                            viewModel.directories.collect { dirList ->
+                                if (dirList.toString().contains("/Media")) {
+                                    contentResolver.takePersistableUriPermission(
+                                        result.data!!.data!!,
+                                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                                    )
 
-                                viewModel.saveHomeUri(absolutePath)
-                                restartActivity()
-                            } else {
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    "Wrong directory selected, please select the right directory...",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                    viewModel.saveHomeUri(absolutePath)
+                                    restartActivity()
+                                } else {
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Wrong directory selected, please select the right directory...",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
                             }
                         }
                     }
+                } else {
+                    Toast.makeText(this, "Please grant permissions...", Toast.LENGTH_SHORT).show()
                 }
-            } else {
-                Toast.makeText(this, "Please grant permissions...", Toast.LENGTH_SHORT).show()
             }
-        }
 
         val storagePermissionResultLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
