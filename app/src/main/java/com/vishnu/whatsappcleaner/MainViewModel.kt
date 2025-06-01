@@ -126,8 +126,12 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
         filterStartDate: Long?,
         filterEndDate: Long?
     ) {
+        Log.i("vishnu", "getFileList: $path")
+
+        _isInProgress.value = true
         viewModelScope.launch(Dispatchers.Default) {
             val fileList = FileRepository.getFileList(application, path)
+            _isInProgress.value = false
 
             fileList.sortWith(
                 when {
