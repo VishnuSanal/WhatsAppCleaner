@@ -188,6 +188,12 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
             _fileReloadTrigger.value = !_fileReloadTrigger.value
         }
     }
+
+    fun clearFileListStates() {
+        _fileList.value = emptyList()
+        _sentList.value = emptyList()
+        _privateList.value = emptyList()
+    }
 }
 
 sealed class Target {

@@ -68,6 +68,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -192,6 +193,12 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 dateRangePickerState.selectedStartDateMillis,
                 dateRangePickerState.selectedEndDateMillis
             )
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearFileListStates()
         }
     }
 
