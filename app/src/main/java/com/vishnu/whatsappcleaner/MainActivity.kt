@@ -34,6 +34,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -150,7 +156,7 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
 
                 NavHost(
-                    modifier = Modifier,
+                    modifier = Modifier.background(MaterialTheme.colorScheme.background),
                     navController = navController,
                     startDestination = startDestination
                 ) {
@@ -204,11 +210,39 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    composable(route = Constants.SCREEN_HOME) {
+                    composable(
+                        route = Constants.SCREEN_HOME,
+                        exitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Start,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeOut(animationSpec = tween(durationMillis = 700))
+                        },
+                        popEnterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.End,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeIn(animationSpec = tween(durationMillis = 700))
+                        }
+                    ) {
                         HomeScreen(navController, viewModel)
                     }
 
-                    composable(route = Constants.SCREEN_DETAILS) {
+                    composable(
+                        route = Constants.SCREEN_DETAILS,
+                        enterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Start,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeIn(animationSpec = tween(durationMillis = 700))
+                        },
+                        popExitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.End,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeOut(animationSpec = tween(durationMillis = 700))
+                        }
+                    ) {
                         DetailsScreen(navController, viewModel)
                     }
                 }
