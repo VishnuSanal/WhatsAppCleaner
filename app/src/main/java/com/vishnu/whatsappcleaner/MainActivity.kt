@@ -66,6 +66,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var storagePermissionGranted: MutableState<Boolean>
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        window.setBackgroundDrawableResource(android.R.color.transparent)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -160,7 +161,33 @@ class MainActivity : ComponentActivity() {
                     navController = navController,
                     startDestination = startDestination
                 ) {
-                    composable(route = Constants.SCREEN_PERMISSION) {
+                    composable(
+                        route = Constants.SCREEN_PERMISSION,
+                        enterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeIn(animationSpec = tween(durationMillis = 700))
+                        },
+                        exitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeOut(animationSpec = tween(durationMillis = 700))
+                        },
+                        popEnterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeIn(animationSpec = tween(durationMillis = 700))
+                        },
+                        popExitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeOut(animationSpec = tween(durationMillis = 700))
+                        }
+                    ) {
                         PermissionScreen(
                             navController = navController,
                             permissionsGranted = Pair(
@@ -212,17 +239,29 @@ class MainActivity : ComponentActivity() {
 
                     composable(
                         route = Constants.SCREEN_HOME,
+                        enterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeIn(animationSpec = tween(durationMillis = 700))
+                        },
                         exitTransition = {
                             slideOutOfContainer(
-                                AnimatedContentTransitionScope.SlideDirection.Start,
+                                AnimatedContentTransitionScope.SlideDirection.Left,
                                 animationSpec = tween(durationMillis = 700)
                             ) + fadeOut(animationSpec = tween(durationMillis = 700))
                         },
                         popEnterTransition = {
                             slideIntoContainer(
-                                AnimatedContentTransitionScope.SlideDirection.End,
+                                AnimatedContentTransitionScope.SlideDirection.Right,
                                 animationSpec = tween(durationMillis = 700)
                             ) + fadeIn(animationSpec = tween(durationMillis = 700))
+                        },
+                        popExitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeOut(animationSpec = tween(durationMillis = 700))
                         }
                     ) {
                         HomeScreen(navController, viewModel)
@@ -232,13 +271,25 @@ class MainActivity : ComponentActivity() {
                         route = Constants.SCREEN_DETAILS,
                         enterTransition = {
                             slideIntoContainer(
-                                AnimatedContentTransitionScope.SlideDirection.Start,
+                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeIn(animationSpec = tween(durationMillis = 700))
+                        },
+                        exitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeOut(animationSpec = tween(durationMillis = 700))
+                        },
+                        popEnterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Right,
                                 animationSpec = tween(durationMillis = 700)
                             ) + fadeIn(animationSpec = tween(durationMillis = 700))
                         },
                         popExitTransition = {
                             slideOutOfContainer(
-                                AnimatedContentTransitionScope.SlideDirection.End,
+                                AnimatedContentTransitionScope.SlideDirection.Right,
                                 animationSpec = tween(durationMillis = 700)
                             ) + fadeOut(animationSpec = tween(durationMillis = 700))
                         }

@@ -19,6 +19,7 @@
 
 package com.vishnu.whatsappcleaner.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -76,6 +77,7 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
     }
 
     Scaffold(
+        modifier = Modifier.background(MaterialTheme.colorScheme.background),
         topBar = {
             HomeTopBar(modifier = Modifier)
         }
