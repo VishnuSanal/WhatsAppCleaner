@@ -81,6 +81,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -102,6 +103,8 @@ import com.vishnu.whatsappcleaner.R
 import com.vishnu.whatsappcleaner.Target
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import java.text.DateFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,6 +115,8 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     )
 
     if (listDirectory == null) return Surface {}
+
+    val coroutineScope = rememberCoroutineScope()
 
     val fileList by viewModel.fileList.collectAsState()
     val sentList by viewModel.sentList.collectAsState()
@@ -141,8 +146,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
             } else 1
         }
     )
-
-    var selectedTabIndex by remember { mutableStateOf(pagerState.currentPage) }
 
     val gridStates = remember {
         List(3) { LazyGridState() }
@@ -215,16 +218,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
         }
     }
 
-    LaunchedEffect(selectedTabIndex) {
-        if (selectedTabIndex != pagerState.currentPage) {
-            pagerState.animateScrollToPage(selectedTabIndex)
-        }
-    }
-
-    LaunchedEffect(pagerState.currentPage) {
-        selectedTabIndex = pagerState.currentPage
-    }
-
     Scaffold(
         topBar = {
             DetailScreenTopBar(
@@ -291,7 +284,9 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                     selectedItemIndex = pagerState.currentPage,
                     items = tabs,
                     onTabSelected = { index ->
-                        selectedTabIndex = index
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
                     }
                 )
             }
