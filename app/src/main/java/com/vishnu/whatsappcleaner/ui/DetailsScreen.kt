@@ -20,7 +20,11 @@
 package com.vishnu.whatsappcleaner.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -150,9 +154,11 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     val showHeader by remember {
         derivedStateOf {
             if (isGridView) {
-                gridStates[pagerState.currentPage].firstVisibleItemIndex < 1
+                val state = gridStates[pagerState.currentPage]
+                state.firstVisibleItemIndex == 0 && state.firstVisibleItemScrollOffset == 0
             } else {
-                listStates[pagerState.currentPage].firstVisibleItemIndex < 1
+                val state = listStates[pagerState.currentPage]
+                state.firstVisibleItemIndex == 0 && state.firstVisibleItemScrollOffset == 0
             }
         }
     }
@@ -251,6 +257,16 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
 
             AnimatedVisibility(
                 visible = showHeader,
+                enter = fadeIn(animationSpec = tween(200)) +
+                    slideInVertically(
+                        animationSpec = tween(200),
+                        initialOffsetY = { it / 8 }
+                    ),
+                exit = fadeOut(animationSpec = tween(150)) +
+                    slideOutVertically(
+                        animationSpec = tween(150),
+                        targetOffsetY = { it / 8 }
+                    )
             ) {
                 Banner(
                     Modifier.padding(16.dp),
