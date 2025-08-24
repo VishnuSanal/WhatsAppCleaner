@@ -1,0 +1,5 @@
+- UI/UX updates
+- Performance improvements
+- bug fixes
+
+Full Changelog -> https://github.com/VishnuSanal/WhatsAppCleaner/compare/v1.3.0...v1.2.0
