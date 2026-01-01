@@ -44,6 +44,12 @@ android {
         debug {
             applicationIdSuffix = ".debug"
         }
+
+        // developer.android.com/build/build-variants#build-types
+        create("play") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".play"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
