@@ -1,6 +1,12 @@
 name: Android Build
 
-on:  [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'docs'
+  pull_request:
+    branches-ignore:
+      - 'docs'
 
 jobs:
   build:
