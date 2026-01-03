@@ -16,6 +16,10 @@
 	<img alt='Get it on F-Droid' src='https://fdroid.gitlab.io/artwork/badge/get-it-on.svg' height="100px" />
 </a>
 
+<a href='https://play.google.com/store/apps/details?id=com.vishnu.whatsappcleaner.play&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'>
+	<img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png' height="100px" />
+</a>
+
 <a href="https://github.com/VishnuSanal/WhatsAppCleaner/releases/">
 	<img alt="Get it on Github" src="https://github.com/VishnuSanal/Quotes/assets/50027064/c6777889-90a3-4a72-b138-9735822933ab" height="100px">
 </a>
@@ -61,7 +65,7 @@ If you enjoy the app, wish to contribute or simply wish to be with like-minded p
 
 ## Why?
 
-Hi, I have been developing open-source native Android products for a while now. I have seen many Android devices with storage running out; most of the time all they needed were to clean-up the storage consumed by WhatsApp. I had searched for an application for the same, but I couldn't find any actually working ones on Google Play nor FDroid, but none seemed to work fine, mostly limited due to Android's varying permission requirements for different versions. And I decided to build one! :)
+I have seen many Android devices with storage space running out; especially for older folks - they might even replace their smartphones with new ones since it might have become unusable due to the "your device is running out of storage space" issues. Most of the time, all they would have needed were to clean-up the storage consumed by WhatsApp. I have been searched for an application for the same but I couldn't find any on the Play Store nor F-Droid that _"actually worked"_, mostly limited due to Android's varying permission requirements for different android API levels. So I decided to build one myself that will meet my goals! :)
 
 <!-- 
 ## Contribute to the project
