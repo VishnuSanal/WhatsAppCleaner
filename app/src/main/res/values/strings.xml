@@ -1,6 +1,3 @@
 <resources>
     <string name="app_name">WhatsAppCleaner</string>
-    <string name="admob_app_id">ca-app-pub-9851547532747429~9247958807</string>
-    <string name="banner_ad_id">ca-app-pub-9851547532747429/4256631784</string>
-    <string name="interstitial_ad_id">ca-app-pub-9851547532747429/5956726261</string>
 </resources>
