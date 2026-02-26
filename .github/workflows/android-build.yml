@@ -26,25 +26,3 @@ jobs:
 
       - name: Gradle Build
         run: ./gradlew testDebug --stacktrace
-
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Get Date
-        id: date
-        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-      - name: Create Nightly Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: nightly-${{ steps.date.outputs.date }}
-          name: Nightly Build ${{ steps.date.outputs.date }}
-          body: |
-            Automated nightly build from commit ${{ github.sha }}
-            Built on: ${{ github.actor }}
-          files: app/build/outputs/apk/debug/app-debug.apk
-          draft: false
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
