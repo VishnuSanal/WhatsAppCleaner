@@ -33,77 +33,86 @@ data class ListDirectory(
     companion object {
         private const val serialVersionUID: Long = -5435756175248173106L
 
-        fun getDirectoryList(homePath: String): List<ListDirectory> = listOf(
-            ListDirectory(
-                "Images",
-                "$homePath/Media/WhatsApp Images",
-                R.drawable.image
-            ),
-            ListDirectory(
-                "Videos",
-                "$homePath/Media/WhatsApp Video",
-                R.drawable.video
-            ),
-            ListDirectory(
-                "Documents",
-                "$homePath/Media/WhatsApp Documents",
-                R.drawable.document
-            ),
+        private fun getWhatsAppFolderName(homePath: String): String = if (homePath.contains("WhatsApp Business", ignoreCase = true)) {
+            "WhatsApp Business"
+        } else {
+            "WhatsApp"
+        }
 
-            ListDirectory(
-                "Audios",
-                "$homePath/Media/WhatsApp Audio",
-                R.drawable.audio
-            ),
-            ListDirectory(
-                "Statuses",
-                "$homePath/Media/.Statuses",
-                R.drawable.status,
-                false,
-                false
-            ),
+        fun getDirectoryList(homePath: String): List<ListDirectory> {
+            val appFolder = getWhatsAppFolderName(homePath)
+            return listOf(
+                ListDirectory(
+                    "Images",
+                    "$homePath/Media/$appFolder Images",
+                    R.drawable.image
+                ),
+                ListDirectory(
+                    "Videos",
+                    "$homePath/Media/$appFolder Video",
+                    R.drawable.video
+                ),
+                ListDirectory(
+                    "Documents",
+                    "$homePath/Media/$appFolder Documents",
+                    R.drawable.document
+                ),
 
-            ListDirectory(
-                "Voice Notes",
-                "$homePath/Media/WhatsApp Voice Notes",
-                R.drawable.voice,
-                false,
-                false
-            ),
-            ListDirectory(
-                "Video Notes",
-                "$homePath/Media/WhatsApp Video Notes",
-                R.drawable.video_notes,
-                false,
-                false
-            ),
+                ListDirectory(
+                    "Audios",
+                    "$homePath/Media/$appFolder Audio",
+                    R.drawable.audio
+                ),
+                ListDirectory(
+                    "Statuses",
+                    "$homePath/Media/.Statuses",
+                    R.drawable.status,
+                    false,
+                    false
+                ),
 
-            ListDirectory(
-                "GIFs",
-                "$homePath/Media/WhatsApp Animated Gifs",
-                R.drawable.gif
-            ),
-            ListDirectory(
-                "Wallpapers",
-                "$homePath/Media/WallPaper",
-                R.drawable.wallpaper,
-                false,
-                false
-            ),
-            ListDirectory(
-                "Stickers",
-                "$homePath/Media/WhatsApp Stickers",
-                R.drawable.sticker,
-                false,
-                false
-            ),
-            ListDirectory(
-                "Profile Photos",
-                "$homePath/Media/WhatsApp Profile Photos",
-                R.drawable.profile,
-                false,
-                false
-            ),
-        )
+                ListDirectory(
+                    "Voice Notes",
+                    "$homePath/Media/$appFolder Voice Notes",
+                    R.drawable.voice,
+                    false,
+                    false
+                ),
+                ListDirectory(
+                    "Video Notes",
+                    "$homePath/Media/$appFolder Video Notes",
+                    R.drawable.video_notes,
+                    false,
+                    false
+                ),
+
+                ListDirectory(
+                    "GIFs",
+                    "$homePath/Media/$appFolder Animated Gifs",
+                    R.drawable.gif
+                ),
+                ListDirectory(
+                    "Wallpapers",
+                    "$homePath/Media/WallPaper",
+                    R.drawable.wallpaper,
+                    false,
+                    false
+                ),
+                ListDirectory(
+                    "Stickers",
+                    "$homePath/Media/$appFolder Stickers",
+                    R.drawable.sticker,
+                    false,
+                    false
+                ),
+                ListDirectory(
+                    "Profile Photos",
+                    "$homePath/Media/$appFolder Profile Photos",
+                    R.drawable.profile,
+                    false,
+                    false
+                ),
+            )
+        }
     }
 }
