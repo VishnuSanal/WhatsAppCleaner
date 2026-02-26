@@ -33,12 +33,10 @@ data class ListDirectory(
     companion object {
         private const val serialVersionUID: Long = -5435756175248173106L
 
-        private fun getWhatsAppFolderName(homePath: String): String {
-            return if (homePath.contains("WhatsApp Business", ignoreCase = true)) {
-                "WhatsApp Business"
-            } else {
-                "WhatsApp"
-            }
+        private fun getWhatsAppFolderName(homePath: String): String = if (homePath.contains("WhatsApp Business", ignoreCase = true)) {
+            "WhatsApp Business"
+        } else {
+            "WhatsApp"
         }
 
         fun getDirectoryList(homePath: String): List<ListDirectory> {
