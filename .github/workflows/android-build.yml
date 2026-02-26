@@ -30,30 +30,12 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: WhatsAppCleaner-debug.apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download APK
-        uses: actions/download-artifact@v4
-        with:
-          name: WhatsAppCleaner-debug.apk
-
       - name: Get Date
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-      - name: Create Release
+      - name: Create Nightly Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: nightly-${{ steps.date.outputs.date }}
@@ -61,7 +43,7 @@ jobs:
           body: |
             Automated nightly build from commit ${{ github.sha }}
             Built on: ${{ github.actor }}
-          files: WhatsAppCleaner-debug.apk
+          files: app/build/outputs/apk/debug/app-debug.apk
           draft: false
           prerelease: true
         env:
