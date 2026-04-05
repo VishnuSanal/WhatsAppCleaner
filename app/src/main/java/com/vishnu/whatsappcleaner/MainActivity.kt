@@ -45,10 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -56,7 +53,6 @@ import com.vishnu.whatsappcleaner.ui.DetailsScreen
 import com.vishnu.whatsappcleaner.ui.HomeScreen
 import com.vishnu.whatsappcleaner.ui.PermissionScreen
 import com.vishnu.whatsappcleaner.ui.theme.WhatsAppCleanerTheme
-import kotlinx.coroutines.launch
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -77,28 +73,22 @@ class MainActivity : ComponentActivity() {
                     val absolutePath =
                         Environment.getExternalStorageDirectory().absolutePath + File.separator + relativePath
 
-                    viewModel.listDirectories(absolutePath)
+                    val mediaDir = File(absolutePath, "Media")
 
-                    lifecycleScope.launch {
-                        repeatOnLifecycle(Lifecycle.State.STARTED) {
-                            viewModel.directories.collect { dirList ->
-                                if (dirList.toString().contains("/Media")) {
-                                    contentResolver.takePersistableUriPermission(
-                                        result.data!!.data!!,
-                                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                                    )
+                    if (mediaDir.exists() && mediaDir.isDirectory) {
+                        contentResolver.takePersistableUriPermission(
+                            result.data!!.data!!,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                        )
 
-                                    viewModel.saveHomeUri(absolutePath)
-                                    restartActivity()
-                                } else {
-                                    Toast.makeText(
-                                        this@MainActivity,
-                                        "Wrong directory selected, please select the right directory...",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
-                        }
+                        viewModel.saveHomeUri(absolutePath)
+                        restartActivity()
+                    } else {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Wrong directory selected, please select the WhatsApp directory...",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 } else {
                     Toast.makeText(this, "Please grant permissions...", Toast.LENGTH_SHORT).show()
