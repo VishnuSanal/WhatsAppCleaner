@@ -1,0 +1,4 @@
+- fix directory selection bug
+- bug fixes
+
+Full Changelog -> https://github.com/VishnuSanal/WhatsAppCleaner/compare/v1.3.1...v1.3.0
