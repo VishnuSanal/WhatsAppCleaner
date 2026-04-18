@@ -411,6 +411,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
         ConfirmationDialog(
             onDismissRequest = {
                 showConfirmationDialog = false
+                isAllSelected = false
                 selectedItems.clear()
             },
             onConfirmation = {
