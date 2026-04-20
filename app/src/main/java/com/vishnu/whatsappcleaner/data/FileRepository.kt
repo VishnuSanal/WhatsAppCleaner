@@ -74,8 +74,10 @@ class FileRepository {
 
             val list = ArrayList<ListFile>()
 
+            val appFolder = if (path.contains("WhatsApp Business", ignoreCase = true)) "WhatsApp Business" else "WhatsApp"
+
             // flattening...
-            if (path.contains("Media/WhatsApp Voice Notes") or path.contains("Media/WhatsApp Video Notes")) File(
+            if (path.contains("Media/$appFolder Voice Notes") or path.contains("Media/$appFolder Video Notes")) File(
                 path
             ).walkTopDown().forEach { f ->
                 if (!f.isDirectory && f.name != ".nomedia") list.add(
