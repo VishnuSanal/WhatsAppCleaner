@@ -27,11 +27,12 @@ object Constants {
     const val SCREEN_DETAILS = "details"
 
     const val DETAILS_LIST_ITEM = "details_list_item"
-    const val FORCE_RELOAD_FILE_LIST = "force_reload_file_list"
-
-    const val REQUEST_PERMISSIONS_CODE_WRITE_STORAGE = 2
 
     const val LIST_LOADING_INDICATION: String = "com.vishnu.whatsappcleaner.loading"
+
+    const val TAG = "vishnu"
+
+    const val CALCULATING = "Calculating…"
 
     final val EXTENSIONS_IMAGE = listOf(
         "jpg",

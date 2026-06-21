@@ -33,77 +33,88 @@ data class ListDirectory(
     companion object {
         private const val serialVersionUID: Long = -5435756175248173106L
 
-        fun getDirectoryList(homePath: String): List<ListDirectory> = listOf(
-            ListDirectory(
-                "Images",
-                "$homePath/Media/WhatsApp Images",
-                R.drawable.image
-            ),
-            ListDirectory(
-                "Videos",
-                "$homePath/Media/WhatsApp Video",
-                R.drawable.video
-            ),
-            ListDirectory(
-                "Documents",
-                "$homePath/Media/WhatsApp Documents",
-                R.drawable.document
-            ),
+        /**
+         * Returns the WhatsApp media folders as paths relative to the selected WhatsApp tree
+         * root (e.g. "Media/WhatsApp Images"). The repository resolves these against the
+         * persisted SAF tree Uri.
+         *
+         * [pathPrefix] is normally empty; it is only used to inject the loading-indication
+         * sentinel so shimmer placeholders can be detected in the UI.
+         */
+        fun getDirectoryList(pathPrefix: String): List<ListDirectory> {
+            val prefix = if (pathPrefix.isEmpty()) "" else "$pathPrefix/"
+            return listOf(
+                ListDirectory(
+                    "Images",
+                    "${prefix}Media/WhatsApp Images",
+                    R.drawable.image
+                ),
+                ListDirectory(
+                    "Videos",
+                    "${prefix}Media/WhatsApp Video",
+                    R.drawable.video
+                ),
+                ListDirectory(
+                    "Documents",
+                    "${prefix}Media/WhatsApp Documents",
+                    R.drawable.document
+                ),
 
-            ListDirectory(
-                "Audios",
-                "$homePath/Media/WhatsApp Audio",
-                R.drawable.audio
-            ),
-            ListDirectory(
-                "Statuses",
-                "$homePath/Media/.Statuses",
-                R.drawable.status,
-                false,
-                false
-            ),
+                ListDirectory(
+                    "Audios",
+                    "${prefix}Media/WhatsApp Audio",
+                    R.drawable.audio
+                ),
+                ListDirectory(
+                    "Statuses",
+                    "${prefix}Media/.Statuses",
+                    R.drawable.status,
+                    false,
+                    false
+                ),
 
-            ListDirectory(
-                "Voice Notes",
-                "$homePath/Media/WhatsApp Voice Notes",
-                R.drawable.voice,
-                false,
-                false
-            ),
-            ListDirectory(
-                "Video Notes",
-                "$homePath/Media/WhatsApp Video Notes",
-                R.drawable.video_notes,
-                false,
-                false
-            ),
+                ListDirectory(
+                    "Voice Notes",
+                    "${prefix}Media/WhatsApp Voice Notes",
+                    R.drawable.voice,
+                    false,
+                    false
+                ),
+                ListDirectory(
+                    "Video Notes",
+                    "${prefix}Media/WhatsApp Video Notes",
+                    R.drawable.video_notes,
+                    false,
+                    false
+                ),
 
-            ListDirectory(
-                "GIFs",
-                "$homePath/Media/WhatsApp Animated Gifs",
-                R.drawable.gif
-            ),
-            ListDirectory(
-                "Wallpapers",
-                "$homePath/Media/WallPaper",
-                R.drawable.wallpaper,
-                false,
-                false
-            ),
-            ListDirectory(
-                "Stickers",
-                "$homePath/Media/WhatsApp Stickers",
-                R.drawable.sticker,
-                false,
-                false
-            ),
-            ListDirectory(
-                "Profile Photos",
-                "$homePath/Media/WhatsApp Profile Photos",
-                R.drawable.profile,
-                false,
-                false
-            ),
-        )
+                ListDirectory(
+                    "GIFs",
+                    "${prefix}Media/WhatsApp Animated Gifs",
+                    R.drawable.gif
+                ),
+                ListDirectory(
+                    "Wallpapers",
+                    "${prefix}Media/WallPaper",
+                    R.drawable.wallpaper,
+                    false,
+                    false
+                ),
+                ListDirectory(
+                    "Stickers",
+                    "${prefix}Media/WhatsApp Stickers",
+                    R.drawable.sticker,
+                    false,
+                    false
+                ),
+                ListDirectory(
+                    "Profile Photos",
+                    "${prefix}Media/WhatsApp Profile Photos",
+                    R.drawable.profile,
+                    false,
+                    false
+                ),
+            )
+        }
     }
 }

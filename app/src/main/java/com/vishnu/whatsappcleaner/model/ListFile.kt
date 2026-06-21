@@ -19,27 +19,27 @@
 
 package com.vishnu.whatsappcleaner.model
 
-import java.io.File
+import java.io.Serializable
 
+/**
+ * Represents a single file exposed through the Storage Access Framework.
+ *
+ * [uri] is the string form of a SAF document Uri (built from the persisted tree). All file
+ * operations (open, delete, thumbnail loading) go through this Uri.
+ */
 data class ListFile(
-    val filePath: String,
+    val uri: String,
+    val name: String = "",
+    val sizeBytes: Long = 0L,
+    val dateModified: Long = 0L,
+    val mimeType: String = "",
     var size: String = "0 B",
     var isSelected: Boolean = false,
-) : File(filePath) {
+) : Serializable {
+    val extension: String
+        get() = name.substringAfterLast('.', "")
+
     companion object {
         private const val serialVersionUID: Long = 8425722975465458623L
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (javaClass != other?.javaClass) return false
-        if (!super.equals(other)) return false
-
-        other as ListFile
-
-        if (filePath != other.filePath) return false
-        if (size != other.size) return false
-        if (isSelected != other.isSelected) return false
-
-        return true
     }
 }

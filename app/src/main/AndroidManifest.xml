@@ -1,38 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- TODO: sorting by size, date modified, name -->
-<!-- TODO: view size, duration & etc -->
-<!-- TODO: Private folder -->
-
 <!--
-    API     Android Version     Testing Status (emulator/real device)             Note
-    24      7.0                                 E                           normal permission
-    25      7.1                                 *                           normal permission
-    26      8.0                                 *                           normal permission
-    27      8.1                                 *                           normal permission
-    28      9                                   *                           normal permission
-    29      10                                  *                           normal permission
-    30      11                                  *                           manage permission
-    31      12                                  *                           manage storage
-    32      12                                  *                           manage storage
-    33      13                                  *                           manage storage
-    34      14                                  R                           manage storage
-    35      15                                  *                           manage storage
+    API     Android Version     Emulator / Real Device
+    24      7.0                          E
+    25      7.1                          *
+    26      8.0                          *
+    27      8.1                          *
+    28      9                            *
+    29      10                           *
+                                                        File    SAF
+    30      11                           *
+    31      12                           *
+    32      12                           *
+    33      13                           *
+    34      14                           *
+    35      15                           R                *      *
+    36      16                           *
+    37      17                           E                *      *
 -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission
-        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
-
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29" />
-
+    <!--
+        API <= 29 uses the direct File API (fast) for all build variants; legacy external
+        storage opts API 29 out of scoped storage so the File API can reach
+        Android/media/com.whatsapp. On API >= 30 the release/debug builds keep using the File API
+        via All Files Access (declared only in those source sets); the Play build falls back to SAF.
+    -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29" />
 
     <application

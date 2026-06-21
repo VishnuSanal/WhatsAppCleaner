@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    All Files Access for the debug build so the File API path can be exercised during development.
+    Kept out of the shared main manifest and the Play build (see src/release/AndroidManifest.xml).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
+</manifest>

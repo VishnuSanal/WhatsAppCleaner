@@ -40,15 +40,21 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("debug")
+            // F-Droid / direct distribution: free to use All Files Access on API 30+.
+            buildConfigField("boolean", "IS_PLAY", "false")
         }
         debug {
             applicationIdSuffix = ".debug"
+            buildConfigField("boolean", "IS_PLAY", "false")
         }
 
         // developer.android.com/build/build-variants#build-types
         create("play") {
             initWith(getByName("release"))
             applicationIdSuffix = ".play"
+            // Google Play forbids MANAGE_EXTERNAL_STORAGE for this use case, so the Play
+            // build falls back to SAF on API 30+ (see Storage.mode()).
+            buildConfigField("boolean", "IS_PLAY", "true")
         }
     }
     compileOptions {
@@ -60,6 +66,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
