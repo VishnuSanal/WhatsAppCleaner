@@ -31,6 +31,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -50,6 +51,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -84,8 +86,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
@@ -97,12 +101,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import com.vishnu.whatsappcleaner.Constants
 import com.vishnu.whatsappcleaner.MainViewModel
 import com.vishnu.whatsappcleaner.R
 import com.vishnu.whatsappcleaner.Target
 import com.vishnu.whatsappcleaner.ViewState
+import com.vishnu.whatsappcleaner.data.FileRepository
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
 import kotlinx.coroutines.launch
@@ -427,17 +433,18 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     if (showConfirmationDialog) {
         ConfirmationDialog(
             onDismissRequest = {
+                // Preserve the selection when the dialog is dismissed without deleting,
+                // so the user does not have to re-select everything after a cancel.
                 showConfirmationDialog = false
-                isAllSelected = false
-                selectedItems.clear()
             },
             onConfirmation = {
                 viewModel.delete(listDirectory, selectedItems.toList())
                 showConfirmationDialog = false
+                isAllSelected = false
                 selectedItems.clear()
             },
-            selectedItems,
-            navController
+            selectedItems = selectedItems,
+            navController = navController
         )
     }
 }
@@ -699,9 +706,21 @@ fun SortDialog(
 fun ConfirmationDialog(
     onDismissRequest: () -> Unit,
     onConfirmation: () -> Unit,
-    list: List<ListFile>,
+    selectedItems: SnapshotStateList<ListFile>,
     navController: NavHostController
 ) {
+    // Auto-dismiss when the user has removed every item, so we never attempt an empty delete.
+    LaunchedEffect(selectedItems.isEmpty()) {
+        if (selectedItems.isEmpty()) onDismissRequest()
+    }
+
+    if (selectedItems.isEmpty()) return
+
+    val context = navController.context
+    val totalSize = remember(selectedItems.toList()) {
+        FileRepository.formatSize(context, selectedItems.sumOf { it.sizeBytes })
+    }
+
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(
@@ -748,7 +767,7 @@ fun ConfirmationDialog(
                                 .wrapContentHeight()
                                 .padding(vertical = 2.dp)
                                 .align(Alignment.Start),
-                            text = "The following files will be deleted.",
+                            text = "${selectedItems.size} files ($totalSize) will be deleted. Tap an item to remove it.",
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -775,13 +794,40 @@ fun ConfirmationDialog(
                     )
                 }
 
-                // todo: no preview & replace it with count + red colored CTA
                 LazyVerticalGrid(
                     modifier = Modifier
                         .wrapContentHeight(),
                     columns = GridCells.Fixed(3),
                 ) {
-                    items(list) { ItemGridCard(it, navController, selectionEnabled = false) {} }
+                    items(selectedItems) { listFile ->
+                        Box(
+                            modifier = Modifier.clickable { selectedItems.remove(listFile) }
+                        ) {
+                            ItemGridCard(
+                                listFile,
+                                navController,
+                                selectionEnabled = false
+                            ) {}
+
+                            Box(
+                                modifier = Modifier
+                                    .padding(12.dp)
+                                    .size(22.dp)
+                                    .align(Alignment.TopEnd)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.errorContainer)
+                                    .zIndex(4f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "×",
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
