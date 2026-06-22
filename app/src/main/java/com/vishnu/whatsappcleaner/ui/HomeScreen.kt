@@ -36,8 +36,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,20 +56,13 @@ import com.vishnu.whatsappcleaner.model.ListDirectory
 
 @Composable
 fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
-    var forceReload by remember { mutableStateOf(false) }
-
-    forceReload = navController.currentBackStackEntry?.savedStateHandle?.get<Boolean>(
-        Constants.FORCE_RELOAD_FILE_LIST
-    ) ?: false
-
     val directoryItem: State<ViewState<Pair<String, List<ListDirectory>>>> =
         viewModel.directoryItem.collectAsState()
 
-    if (forceReload) {
-        viewModel.getDirectoryList()
-    }
+    val isSizeLoading by viewModel.isTotalSizeLoading.collectAsState()
 
-    // trigger when moving from permission screen to home screen on Android 15
+    // trigger when moving from permission screen to home screen on Android 15; no-op once sizes
+    // are already cached
     LaunchedEffect(key1 = null) {
         viewModel.getDirectoryList()
     }
@@ -99,7 +90,8 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
                         item {
                             ListSizeHeader(
                                 modifier,
-                                directoryItem
+                                directoryItem,
+                                isSizeLoading
                             )
                         }
                         items((directoryItem.value as ViewState.Success<Pair<String, List<ListDirectory>>>).data.second) {
@@ -115,7 +107,8 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
                     item {
                         ListSizeHeader(
                             modifier,
-                            directoryItem
+                            directoryItem,
+                            isSizeLoading
                         )
                     }
                     items(ListDirectory.getDirectoryList(Constants.LIST_LOADING_INDICATION)) {
@@ -148,10 +141,11 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
 @Composable
 fun ListSizeHeader(
     modifier: Modifier = Modifier,
-    viewState: State<ViewState<Pair<String, List<ListDirectory>>>>
+    viewState: State<ViewState<Pair<String, List<ListDirectory>>>>,
+    isSizeLoading: Boolean = false
 ) = Banner(
-    modifier.padding(16.dp),
-    buildAnnotatedString {
+    modifier = if (isSizeLoading) modifier.padding(16.dp).shimmer() else modifier.padding(16.dp),
+    text = buildAnnotatedString {
         when (viewState.value) {
             is ViewState.Success -> {
                 var size =

@@ -19,14 +19,11 @@
 
 package com.vishnu.whatsappcleaner
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
-import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.Settings
 import android.widget.Toast
@@ -40,26 +37,21 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.core.app.ActivityCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.vishnu.whatsappcleaner.data.Storage
 import com.vishnu.whatsappcleaner.ui.DetailsScreen
 import com.vishnu.whatsappcleaner.ui.HomeScreen
 import com.vishnu.whatsappcleaner.ui.PermissionScreen
 import com.vishnu.whatsappcleaner.ui.theme.WhatsAppCleanerTheme
-import java.io.File
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: MainViewModel
-
-    private lateinit var storagePermissionGranted: MutableState<Boolean>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         window.setBackgroundDrawableResource(android.R.color.transparent)
@@ -68,20 +60,15 @@ class MainActivity : ComponentActivity() {
 
         val resultLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                if (result.resultCode == RESULT_OK && result.data?.data?.path != null) {
-                    val relativePath = result.data!!.data!!.path!!.split(":")[1]
-                    val absolutePath =
-                        Environment.getExternalStorageDirectory().absolutePath + File.separator + relativePath
-
-                    val mediaDir = File(absolutePath, "Media")
-
-                    if (mediaDir.exists() && mediaDir.isDirectory) {
+                val treeUri = result.data?.data
+                if (result.resultCode == RESULT_OK && treeUri != null) {
+                    if (hasMediaFolder(treeUri)) {
                         contentResolver.takePersistableUriPermission(
-                            result.data!!.data!!,
+                            treeUri,
                             Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                         )
 
-                        viewModel.saveHomeUri(absolutePath)
+                        viewModel.saveHomeUri(treeUri.toString())
                         restartActivity()
                     } else {
                         Toast.makeText(
@@ -91,20 +78,49 @@ class MainActivity : ComponentActivity() {
                         ).show()
                     }
                 } else {
-                    Toast.makeText(this, "Please grant permissions...", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Please grant access...", Toast.LENGTH_SHORT).show()
                 }
             }
 
-        val storagePermissionResultLauncher =
+        // API >= 30, non-Play: All Files Access is granted from a system Settings screen.
+        val manageStorageLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-                if (Build.VERSION.SDK_INT >= VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+                if (Storage.isReady(this)) {
+                    restartActivity()
+                } else {
                     Toast.makeText(
                         this,
-                        "Please grant permissions...",
+                        "Please grant All Files Access to continue...",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
             }
+
+        // API <= 29: the direct File API needs read (listing) and write (deletion) storage access.
+        val storagePermissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+                if (results.values.all { it }) {
+                    restartActivity()
+                } else {
+                    Toast.makeText(this, "Please grant storage access...", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+
+        // Picks the right onboarding flow for the active storage backend (see Storage.mode()).
+        val requestAccess = {
+            when (Storage.mode()) {
+                Storage.Mode.SAF -> resultLauncher.launch(chooseDirectoryIntent())
+                Storage.Mode.FILE_MANAGE -> requestAllFilesAccess(manageStorageLauncher)
+                Storage.Mode.FILE_LEGACY ->
+                    storagePermissionLauncher.launch(
+                        arrayOf(
+                            android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        )
+                    )
+            }
+        }
 
         viewModel = ViewModelProvider(
             this,
@@ -113,36 +129,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             WhatsAppCleanerTheme {
-                storagePermissionGranted =
-                    remember {
-                        mutableStateOf(
-                            (Build.VERSION.SDK_INT >= VERSION_CODES.R && Environment.isExternalStorageManager()) ||
-                                ActivityCompat.checkSelfPermission(
-                                    this@MainActivity,
-                                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                ) == PackageManager.PERMISSION_GRANTED
-                        )
-                    }
-
-                var startDestination =
-                    if (Build.VERSION.SDK_INT >= VERSION_CODES.R &&
-                        Environment.isExternalStorageManager() &&
-                        contentResolver.persistedUriPermissions.isNotEmpty()
-                    ) Constants.SCREEN_HOME
-                    else if (ActivityCompat.checkSelfPermission(
-                            this@MainActivity,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-                        ) == PackageManager.PERMISSION_GRANTED &&
-                        contentResolver.persistedUriPermissions.isNotEmpty()
-                    ) Constants.SCREEN_HOME
-                    else {
-                        Toast.makeText(
-                            this,
-                            "Please grant all permissions...",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                val startDestination =
+                    if (Storage.isReady(this))
+                        Constants.SCREEN_HOME
+                    else
                         Constants.SCREEN_PERMISSION
-                    }
 
                 val navController = rememberNavController()
 
@@ -179,51 +170,9 @@ class MainActivity : ComponentActivity() {
                         }
                     ) {
                         PermissionScreen(
-                            navController = navController,
-                            permissionsGranted = Pair(
-                                storagePermissionGranted.value,
-                                contentResolver.persistedUriPermissions.isNotEmpty()
-                            ),
-                            requestPermission = {
-                                if (Build.VERSION.SDK_INT >= VERSION_CODES.R) {
-                                    storagePermissionResultLauncher.launch(
-                                        Intent(
-                                            Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                                            Uri.parse("package:" + packageName)
-                                        )
-                                    )
-                                } else {
-                                    if (ActivityCompat.shouldShowRequestPermissionRationale(
-                                            this@MainActivity,
-                                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                        )
-                                    ) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "Storage permission required for the app to work",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-
-                                    requestPermissions(
-                                        arrayOf(
-                                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                                            Manifest.permission.READ_EXTERNAL_STORAGE
-                                        ),
-                                        Constants.REQUEST_PERMISSIONS_CODE_WRITE_STORAGE
-                                    )
-                                }
-                            },
-                            chooseDirectory = {
-                                resultLauncher.launch(
-                                    Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                                        if (Build.VERSION.SDK_INT >= VERSION_CODES.O) putExtra(
-                                            DocumentsContract.EXTRA_INITIAL_URI,
-                                            Uri.parse(Constants.WHATSAPP_HOME_URI)
-                                        )
-                                    }
-                                )
-                            },
+                            isAccessGranted = Storage.isReady(this@MainActivity),
+                            showDirectoryHint = Storage.mode() == Storage.Mode.SAF,
+                            requestAccess = requestAccess,
                         )
                     }
 
@@ -291,40 +240,60 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Deprecated("Deprecated callback")
-    public override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == Constants.REQUEST_PERMISSIONS_CODE_WRITE_STORAGE) {
-            for (i in permissions.indices) {
-                val permission = permissions[i]
-                val grantResult = grantResults[i]
-
-                if (permission == Manifest.permission.WRITE_EXTERNAL_STORAGE) {
-                    if (grantResult == PackageManager.PERMISSION_GRANTED) {
-                        storagePermissionGranted.value = true
-                    } else {
-                        requestPermissions(
-                            arrayOf<String>(
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                                Manifest.permission.READ_EXTERNAL_STORAGE
-                            ),
-                            Constants.REQUEST_PERMISSIONS_CODE_WRITE_STORAGE
-                        )
-                    }
-                }
-            }
-        }
+    /**
+     * Verifies the user picked an actual WhatsApp directory by checking for a "Media" child.
+     * Works for both the legacy "/WhatsApp" tree and the scoped
+     * "/Android/media/com.whatsapp/WhatsApp" tree, since neither requires raw file access.
+     */
+    private fun hasMediaFolder(treeUri: Uri): Boolean = try {
+        val rootDocId = DocumentsContract.getTreeDocumentId(treeUri)
+        val mediaUri =
+            DocumentsContract.buildDocumentUriUsingTree(treeUri, "$rootDocId/Media")
+        contentResolver.query(
+            mediaUri,
+            arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID),
+            null,
+            null,
+            null
+        )?.use { it.moveToFirst() } ?: false
+    } catch (e: Exception) {
+        false
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (Build.VERSION.SDK_INT >= VERSION_CODES.R && ::storagePermissionGranted.isInitialized)
-            storagePermissionGranted.value = Environment.isExternalStorageManager()
+    /** SAF tree picker intent, pre-pointed at the scoped WhatsApp directory. */
+    private fun chooseDirectoryIntent(): Intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+        addFlags(
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+        )
+        if (Build.VERSION.SDK_INT >= VERSION_CODES.O)
+            putExtra(
+                DocumentsContract.EXTRA_INITIAL_URI,
+                DocumentsContract.buildDocumentUri(
+                    EXTERNAL_STORAGE_AUTHORITY,
+                    "primary:Android/media/com.whatsapp/WhatsApp"
+                )
+            )
+    }
+
+    /**
+     * Opens the All Files Access settings screen for this app, falling back to the global list if
+     * the per-app screen is unavailable on the device.
+     */
+    private fun requestAllFilesAccess(
+        launcher: androidx.activity.result.ActivityResultLauncher<Intent>
+    ) {
+        try {
+            launcher.launch(
+                Intent(
+                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    "package:$packageName".toUri()
+                )
+            )
+        } catch (e: Exception) {
+            launcher.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+        }
     }
 
     private fun restartActivity() {
@@ -332,5 +301,10 @@ class MainActivity : ComponentActivity() {
         val intent = intent
         finish()
         startActivity(intent)
+    }
+
+    companion object {
+        private const val EXTERNAL_STORAGE_AUTHORITY =
+            "com.android.externalstorage.documents"
     }
 }

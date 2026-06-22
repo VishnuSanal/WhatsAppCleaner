@@ -21,7 +21,6 @@ package com.vishnu.whatsappcleaner.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -35,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.bumptech.glide.integration.compose.placeholder
@@ -44,10 +42,9 @@ import com.vishnu.whatsappcleaner.R
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun PermissionScreen(
-    navController: NavHostController,
-    permissionsGranted: Pair<Boolean, Boolean>,
-    requestPermission: () -> Unit,
-    chooseDirectory: () -> Unit
+    isAccessGranted: Boolean,
+    showDirectoryHint: Boolean,
+    requestAccess: () -> Unit
 ) {
     Scaffold(
         Modifier.background(MaterialTheme.colorScheme.background)
@@ -73,7 +70,10 @@ fun PermissionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                text = "1. Please grant the required permissions to WhatsAppCleaner",
+                text = if (showDirectoryHint)
+                    "Please grant access to the WhatsApp directory as shown in the picture below. This is the only permission the app needs."
+                else
+                    "Please grant storage access so the app can find your WhatsApp media. This is the only permission the app needs.",
                 textAlign = TextAlign.Justify,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -82,51 +82,21 @@ fun PermissionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                enabled = !permissionsGranted.first,
+                enabled = !isAccessGranted,
                 content = {
                     Text(
-                        if (!permissionsGranted.first)
-                            "Grant storage permissions"
+                        if (!isAccessGranted)
+                            "Grant access"
                         else
-                            "Storage permission granted"
+                            "Access granted"
                     )
                 },
                 onClick = {
-                    requestPermission()
-                }
-            )
-
-            if (!permissionsGranted.first)
-                Spacer(Modifier.weight(1f))
-
-            Text(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                text = "2. Please grant access to the WhatsApp directory as shown in the picture below",
-                textAlign = TextAlign.Justify,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-
-            OutlinedButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                enabled = permissionsGranted.first && !permissionsGranted.second,
-                content = {
-                    Text(
-                        if (!permissionsGranted.first)
-                            "Grant storage permissions"
-                        else
-                            "Choose WhatsApp directory"
-                    )
-                },
-                onClick = {
-                    chooseDirectory()
+                    requestAccess()
                 },
             )
 
-            if (permissionsGranted.first && !permissionsGranted.second)
+            if (!isAccessGranted && showDirectoryHint)
                 GlideImage(
                     modifier = Modifier
                         .padding(16.dp)

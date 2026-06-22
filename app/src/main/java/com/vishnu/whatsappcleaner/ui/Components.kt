@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat.startActivity
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.navigation.NavHostController
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
@@ -288,8 +289,7 @@ fun ItemGridCard(
         // only for keeping track of the UI
         var selected by remember { mutableStateOf(isSelected) }
 
-        var modifier = if (listFile.filePath.toString()
-                .contains(Constants.LIST_LOADING_INDICATION)
+        var modifier = if (listFile.uri.contains(Constants.LIST_LOADING_INDICATION)
         ) Modifier.shimmer()
         else Modifier
 
@@ -315,12 +315,12 @@ fun ItemGridCard(
 
                             selected = !selected
 
-                            if (!listFile.filePath.toString()
+                            if (!listFile.uri
                                     .contains(Constants.LIST_LOADING_INDICATION)
                             ) toggleSelection()
                         }, onTap = {
                             if (selectionEnabled &&
-                                !listFile.filePath.toString()
+                                !listFile.uri
                                     .contains(Constants.LIST_LOADING_INDICATION)
                             ) openFile(
                                 navController.context,
@@ -347,7 +347,7 @@ fun ItemGridCard(
                         .clickable {
                             selected = !selected
 
-                            if (!listFile.filePath.toString()
+                            if (!listFile.uri
                                     .contains(Constants.LIST_LOADING_INDICATION)
                             ) toggleSelection()
                         }
@@ -362,7 +362,7 @@ fun ItemGridCard(
                 }
 
                 if (listFile.extension.lowercase() in Constants.EXTENSIONS_IMAGE) GlideImage(
-                    model = listFile,
+                    model = listFile.uri,
                     contentScale = ContentScale.Crop,
                     loading = placeholder(R.drawable.image),
                     failure = placeholder(R.drawable.error),
@@ -370,7 +370,7 @@ fun ItemGridCard(
                 )
                 else if (listFile.extension.lowercase() in Constants.EXTENSIONS_VIDEO) {
                     GlideImage(
-                        model = listFile,
+                        model = listFile.uri,
                         contentScale = ContentScale.Crop,
                         loading = placeholder(R.drawable.image),
                         failure = placeholder(R.drawable.error),
@@ -481,7 +481,7 @@ fun ItemListCard(
 ) {
     var selected by remember { mutableStateOf(isSelected) }
 
-    val modifier = if (listFile.filePath.toString().contains(Constants.LIST_LOADING_INDICATION))
+    val modifier = if (listFile.uri.contains(Constants.LIST_LOADING_INDICATION))
         Modifier.shimmer() else Modifier
 
     LaunchedEffect(isSelected) {
@@ -505,12 +505,12 @@ fun ItemListCard(
 
                         selected = !selected
 
-                        if (!listFile.filePath.toString()
+                        if (!listFile.uri
                                 .contains(Constants.LIST_LOADING_INDICATION)
                         ) toggleSelection()
                     }, onTap = {
                         if (selectionEnabled &&
-                            !listFile.filePath.toString()
+                            !listFile.uri
                                 .contains(Constants.LIST_LOADING_INDICATION)
                         ) openFile(
                             navController.context,
@@ -527,7 +527,7 @@ fun ItemListCard(
                         .clip(CircleShape)
                         .clickable {
                             selected = !selected
-                            if (!listFile.filePath.toString()
+                            if (!listFile.uri
                                     .contains(Constants.LIST_LOADING_INDICATION)
                             ) {
                                 toggleSelection()
@@ -537,7 +537,7 @@ fun ItemListCard(
                     when {
                         listFile.extension.lowercase() in Constants.EXTENSIONS_IMAGE -> {
                             GlideImage(
-                                model = listFile,
+                                model = listFile.uri,
                                 contentScale = ContentScale.Crop,
                                 loading = placeholder(R.drawable.image),
                                 failure = placeholder(R.drawable.error),
@@ -561,7 +561,7 @@ fun ItemListCard(
                             )
 
                             GlideImage(
-                                model = listFile,
+                                model = listFile.uri,
                                 contentScale = ContentScale.Crop,
                                 loading = placeholder(R.drawable.image),
                                 failure = placeholder(R.drawable.error),
@@ -649,7 +649,7 @@ fun ItemListCard(
                     )
 
                     Text(
-                        text = DateFormat.getDateInstance().format(listFile.lastModified()),
+                        text = DateFormat.getDateInstance().format(listFile.dateModified),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -726,18 +726,23 @@ fun CleanUpButton(
 
 fun openFile(context: Context, listFile: ListFile) {
     try {
-        startActivity(
-            context,
-            Intent(
-                Intent.ACTION_VIEW,
-                FileProvider.getUriForFile(
-                    context,
-                    context.packageName + ".provider",
-                    listFile
-                )
-            ).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
-            null
-        )
+        // SAF entries are already content:// Uris; File-API entries are absolute paths that must be
+        // shared through FileProvider (a raw file:// Uri would throw FileUriExposedException).
+        val uri = if (listFile.uri.startsWith("content://")) {
+            listFile.uri.toUri()
+        } else {
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                java.io.File(listFile.uri)
+            )
+        }
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            if (listFile.mimeType.isNotEmpty()) setDataAndType(uri, listFile.mimeType)
+            else data = uri
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(intent)
     } catch (e: ActivityNotFoundException) {
         e.printStackTrace()
         Toast.makeText(

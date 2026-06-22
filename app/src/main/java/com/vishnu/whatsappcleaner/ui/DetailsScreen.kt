@@ -102,9 +102,9 @@ import com.vishnu.whatsappcleaner.Constants
 import com.vishnu.whatsappcleaner.MainViewModel
 import com.vishnu.whatsappcleaner.R
 import com.vishnu.whatsappcleaner.Target
+import com.vishnu.whatsappcleaner.ViewState
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 
@@ -122,9 +122,15 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     val fileList by viewModel.fileList.collectAsState()
     val sentList by viewModel.sentList.collectAsState()
     val privateList by viewModel.privateList.collectAsState()
-    val isInProgress by viewModel.isInProgress.collectAsState()
+    val loadingTargets by viewModel.loadingTargets.collectAsState()
+    val isDeleting by viewModel.isDeleting.collectAsState()
     val isGridView by viewModel.isGridView.collectAsState()
+    val directoryItem by viewModel.directoryItem.collectAsState()
     val fileReloadTrigger by viewModel.fileReloadTrigger.collectAsState()
+
+    val directorySize = (directoryItem as? ViewState.Success)
+        ?.data?.second?.firstOrNull { it.path == listDirectory.path }?.size
+        ?: listDirectory.size
 
     var selectedItems = remember { mutableStateListOf<ListFile>() }
     var sortBy = remember { mutableStateOf("Date") }
@@ -147,6 +153,15 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
             } else 1
         }
     )
+
+    fun targetForPage(page: Int) = when (page) {
+        0 -> Target.Received
+        1 -> Target.Sent
+        else -> Target.Private
+    }
+
+    val isCurrentTabLoading = targetForPage(pagerState.currentPage) in loadingTargets
+    val isInProgress = isDeleting || isCurrentTabLoading
 
     val gridStates = remember {
         List(3) { LazyGridState() }
@@ -266,7 +281,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 Banner(
                     Modifier.padding(16.dp),
                     buildAnnotatedString {
-                        val size = listDirectory.size
+                        val size = directorySize
                         val parts = size.split(" ")
                         if (parts.size == 2) {
                             withStyle(SpanStyle(fontSize = 24.sp)) { append(parts[0]) }
@@ -361,7 +376,9 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                 }
                             }
                         }
-                    } else {
+                    } else if (targetForPage(page) !in loadingTargets && !isDeleting) {
+                        // Only call a tab empty once its walk has finished — otherwise a slow tab
+                        // would flash "nothing to clean" while still loading
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.Center,
@@ -415,7 +432,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 selectedItems.clear()
             },
             onConfirmation = {
-                viewModel.delete(selectedItems.toList())
+                viewModel.delete(listDirectory, selectedItems.toList())
                 showConfirmationDialog = false
                 selectedItems.clear()
             },

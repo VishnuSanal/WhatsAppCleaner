@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    All Files Access for the F-Droid / direct-distribution (release) build only. This grants the
+    File API access to Android/media/com.whatsapp on API 30+. It must NOT leak into the Play build:
+    Google Play forbids MANAGE_EXTERNAL_STORAGE for this use case, so it lives in this source set
+    (and src/debug) rather than the shared main manifest.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
+</manifest>
