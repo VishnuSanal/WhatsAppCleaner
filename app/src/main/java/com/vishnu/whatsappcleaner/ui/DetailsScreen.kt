@@ -75,7 +75,6 @@ import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -101,12 +100,14 @@ import androidx.navigation.NavHostController
 import com.vishnu.whatsappcleaner.Constants
 import com.vishnu.whatsappcleaner.MainViewModel
 import com.vishnu.whatsappcleaner.R
+import com.vishnu.whatsappcleaner.SortBy
 import com.vishnu.whatsappcleaner.Target
 import com.vishnu.whatsappcleaner.ViewState
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
 import kotlinx.coroutines.launch
 import java.text.DateFormat
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,22 +120,19 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
 
     val coroutineScope = rememberCoroutineScope()
 
-    val fileList by viewModel.fileList.collectAsState()
-    val sentList by viewModel.sentList.collectAsState()
-    val privateList by viewModel.privateList.collectAsState()
+    val files by viewModel.files.collectAsState()
+    val filter by viewModel.filter.collectAsState()
+
     val loadingTargets by viewModel.loadingTargets.collectAsState()
     val isDeleting by viewModel.isDeleting.collectAsState()
     val isGridView by viewModel.isGridView.collectAsState()
     val directoryItem by viewModel.directoryItem.collectAsState()
-    val fileReloadTrigger by viewModel.fileReloadTrigger.collectAsState()
 
     val directorySize = (directoryItem as? ViewState.Success)
         ?.data?.second?.firstOrNull { it.path == listDirectory.path }?.size
         ?: listDirectory.size
 
     var selectedItems = remember { mutableStateListOf<ListFile>() }
-    var sortBy = remember { mutableStateOf("Date") }
-    var isSortDescending = remember { mutableStateOf(true) }
 
     val dateRangePickerState = rememberDateRangePickerState()
 
@@ -182,48 +180,16 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
         }
     }
 
-    LaunchedEffect(
-        fileReloadTrigger,
-        sortBy.value,
-        isSortDescending.value,
-        dateRangePickerState.selectedStartDateMillis,
-        dateRangePickerState.selectedEndDateMillis
-    ) {
-        viewModel.getFileList(
-            Target.Received,
-            listDirectory.path,
-            sortBy.value,
-            isSortDescending.value,
-            dateRangePickerState.selectedStartDateMillis,
-            dateRangePickerState.selectedEndDateMillis
-        )
-
-        if (listDirectory.hasSent) {
-            viewModel.getFileList(
-                Target.Sent,
-                "${listDirectory.path}/Sent",
-                sortBy.value,
-                isSortDescending.value,
-                dateRangePickerState.selectedStartDateMillis,
-                dateRangePickerState.selectedEndDateMillis
-            )
-        }
-
-        if (listDirectory.hasPrivate) {
-            viewModel.getFileList(
-                Target.Private,
-                "${listDirectory.path}/Private",
-                sortBy.value,
-                isSortDescending.value,
-                dateRangePickerState.selectedStartDateMillis,
-                dateRangePickerState.selectedEndDateMillis
-            )
-        }
+    // The ViewModel owns the walk: tell it which directory is open and it streams the files,
+    // re-walking only on a directory change or a reload (after a delete). Sorting and date
+    // filtering are applied reactively to the already-walked files, so they never re-walk.
+    LaunchedEffect(listDirectory.path) {
+        viewModel.setActiveDirectory(listDirectory)
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            viewModel.clearFileListStates()
+            viewModel.clearActiveDirectory()
         }
     }
 
@@ -245,7 +211,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 isGridView = isGridView,
                 onSortClick = {
                     showSortDialog = true
-                    dateRangePickerState.setSelection(null, null)
+                    dateRangePickerState.setSelection(filter.startDate, filter.endDate)
                     selectedItems.clear()
                     isAllSelected = false
                 }
@@ -314,11 +280,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                     .weight(1f)
                     .fillMaxWidth()
             ) { page ->
-                val list = when (page) {
-                    0 -> fileList
-                    1 -> sentList
-                    else -> privateList
-                }
+                val list = files[targetForPage(page)].orEmpty()
 
                 Column(
                     Modifier
@@ -414,13 +376,19 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
 
     if (showSortDialog) {
         SortDialog(
-            navController,
             onDismissRequest = {
                 showSortDialog = false
             },
-            sortBy,
-            isSortDescending,
-            dateRangePickerState
+            currentSortBy = filter.sortBy,
+            currentDescending = filter.descending,
+            dateRangePickerState = dateRangePickerState,
+            onApply = { sortBy, descending ->
+                viewModel.setSort(sortBy, descending)
+                viewModel.setDateFilter(
+                    dateRangePickerState.selectedStartDateMillis,
+                    dateRangePickerState.selectedEndDateMillis
+                )
+            }
         )
     }
 
@@ -499,11 +467,11 @@ fun DetailScreenTopBar(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SortDialog(
-    navController: NavHostController,
     onDismissRequest: () -> Unit,
-    sortBy: MutableState<String>,
-    isSortDescending: MutableState<Boolean>,
+    currentSortBy: SortBy,
+    currentDescending: Boolean,
     dateRangePickerState: DateRangePickerState,
+    onApply: (SortBy, Boolean) -> Unit,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -516,8 +484,8 @@ fun SortDialog(
             decorFitsSystemWindows = true
         ),
     ) {
-        var isDescending by remember { mutableStateOf(isSortDescending) }
-        var selectedItem by remember { mutableStateOf(sortBy) }
+        var descending by remember { mutableStateOf(currentDescending) }
+        var selectedSort by remember { mutableStateOf(currentSortBy) }
 
         Card(
             modifier = Modifier
@@ -541,30 +509,26 @@ fun SortDialog(
                     style = MaterialTheme.typography.headlineLarge,
                 )
 
-                listOf(
-                    "Date",
-                    "Size",
-                    "Name",
-                ).forEach { item ->
+                SortBy.entries.forEach { item ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                selectedItem.value = item
+                                selectedSort = item
                             },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(
-                            selected = sortBy.value == item,
+                            selected = selectedSort == item,
                             onClick = {
-                                selectedItem.value = item
+                                selectedSort = item
                             },
                             enabled = true,
                             colors = RadioButtonDefaults.colors(
                                 selectedColor = MaterialTheme.colorScheme.primary
                             )
                         )
-                        Text(text = item, modifier = Modifier.padding(start = 8.dp))
+                        Text(text = item.label, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
 
@@ -593,8 +557,8 @@ fun SortDialog(
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    when (selectedItem.value) {
-                        "Date" -> {
+                    when (selectedSort) {
+                        SortBy.DATE -> {
                             OutlinedTextField(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -610,11 +574,9 @@ fun SortDialog(
                                         }
                                     },
                                 readOnly = true,
-                                value = if (dateRangePickerState.selectedEndDateMillis != null)
-                                    DateFormat.getDateInstance()
-                                        .format(dateRangePickerState.selectedStartDateMillis)
-                                else
-                                    "N/A",
+                                value = dateRangePickerState.selectedStartDateMillis?.let {
+                                    DateFormat.getDateInstance().format(Date(it))
+                                } ?: "N/A",
                                 onValueChange = {},
                                 label = { Text("From Date") },
                             )
@@ -636,15 +598,15 @@ fun SortDialog(
                                         }
                                     },
                                 readOnly = true,
-                                value = if (dateRangePickerState.selectedEndDateMillis != null)
-                                    DateFormat.getDateInstance()
-                                        .format(dateRangePickerState.selectedEndDateMillis)
-                                else
-                                    "N/A",
+                                value = dateRangePickerState.selectedEndDateMillis?.let {
+                                    DateFormat.getDateInstance().format(Date(it))
+                                } ?: "N/A",
                                 onValueChange = {},
                                 label = { Text("To Date") },
                             )
                         }
+
+                        SortBy.SIZE, SortBy.NAME -> {}
                     }
                 }
 
@@ -654,8 +616,8 @@ fun SortDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Switch(
-                        checked = isDescending.value,
-                        onCheckedChange = { isDescending.value = it }
+                        checked = descending,
+                        onCheckedChange = { descending = it }
                     )
 
                     Text(text = "Descending", modifier = Modifier.padding(start = 8.dp))
@@ -669,8 +631,7 @@ fun SortDialog(
                     shape = RoundedCornerShape(16.dp),
                     contentPadding = PaddingValues(4.dp),
                     onClick = {
-                        sortBy.value = selectedItem.value
-                        isSortDescending.value = isDescending.value
+                        onApply(selectedSort, descending)
                         onDismissRequest()
                     }
                 ) {

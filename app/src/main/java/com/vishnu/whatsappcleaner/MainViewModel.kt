@@ -32,32 +32,42 @@ import com.vishnu.whatsappcleaner.data.Storage
 import com.vishnu.whatsappcleaner.data.StoreData
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 
 class MainViewModel(private val application: Application) : AndroidViewModel(application) {
 
     private val storeData = StoreData(application.applicationContext)
 
-    // File lists, one per tab
+    // File listing — driven reactively from the active directory and the current filter.
 
-    private val _fileList = MutableStateFlow<List<ListFile>>(emptyList())
-    val fileList: StateFlow<List<ListFile>> = _fileList.asStateFlow()
+    // The directory currently open in the details screen; null when no details screen is shown.
+    // Setting it (or bumping [reloadSignal]) is the only thing that kicks off a disk walk.
+    private val activeDirectory = MutableStateFlow<ListDirectory?>(null)
+    private val reloadSignal = MutableStateFlow(0)
 
-    private val _sentList = MutableStateFlow<List<ListFile>>(emptyList())
-    val sentList: StateFlow<List<ListFile>> = _sentList.asStateFlow()
+    // Raw, unsorted walk results per tab. The expensive walk only re-runs on a directory change or
+    // a reload (after a deletion) — never on a sort/filter change, which is pure in-memory work.
+    private val rawFiles = MutableStateFlow<Map<Target, List<ListFile>>>(emptyMap())
 
-    private val _privateList = MutableStateFlow<List<ListFile>>(emptyList())
-    val privateList: StateFlow<List<ListFile>> = _privateList.asStateFlow()
+    // Sort + date-filter criteria. Owned by the ViewModel so it survives configuration changes and
+    // so the UI never has to re-issue a query — it just collects [files].
+    private val _filter = MutableStateFlow(FileFilter())
+    val filter: StateFlow<FileFilter> = _filter.asStateFlow()
 
     private val _loadingTargets = MutableStateFlow<Set<Target>>(emptySet())
     val loadingTargets: StateFlow<Set<Target>> = _loadingTargets.asStateFlow()
@@ -65,8 +75,14 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
     private val _isDeleting = MutableStateFlow(false)
     val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
 
-    private val _fileReloadTrigger = MutableStateFlow(false)
-    val fileReloadTrigger: StateFlow<Boolean> = _fileReloadTrigger.asStateFlow()
+    // What the UI renders: the raw walk results run through the current sort/filter. Re-derives
+    // instantly whenever the raw files stream in or the filter changes, without touching disk.
+    val files: StateFlow<Map<Target, List<ListFile>>> =
+        combine(rawFiles, _filter) { raw, filter ->
+            raw.mapValues { (_, list) -> sortAndFilter(list, filter) }
+        }
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     // Home directory sizes
 
@@ -93,16 +109,28 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
 
     // In-flight work
 
-    // One in-flight file walk per tab; tracked so a walk can be canceled when the user navigates
-    // away or reloads
-    private val fileListJobs = mutableMapOf<Target, Job>()
-
     // The in-flight full walk, if any; a deletion joins it before re-measuring so the two can't
     // race
     private var directoryJob: Job? = null
 
     init {
         getDirectoryList()
+
+        // A single pipeline owns file loading. Whenever the active directory or the reload signal
+        // changes, collectLatest cancels the previous walk — which covers both navigating away
+        // (directory set to null) and reloading after a delete — and starts a fresh one. This
+        // replaces the hand-rolled per-tab job tracking and the boolean reload toggle.
+        viewModelScope.launch {
+            combine(activeDirectory, reloadSignal) { directory, _ -> directory }
+                .collectLatest { directory ->
+                    if (directory == null) {
+                        rawFiles.value = emptyMap()
+                        _loadingTargets.value = emptySet()
+                    } else {
+                        loadFiles(directory)
+                    }
+                }
+        }
     }
 
     fun toggleViewType() {
@@ -179,89 +207,98 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
         else -> 0
     }
 
-    fun getFileList(
-        target: Target,
-        path: String,
-        sortBy: String,
-        isSortDescending: Boolean,
-        filterStartDate: Long?,
-        filterEndDate: Long?
-    ) {
-        Log.i(TAG, "getFileList: $path")
+    /**
+     * Opens [directory] in the details screen. Idempotent for the same path so recomposition
+     * doesn't re-walk; switching to a different directory resets the filter to its defaults (the
+     * filter is shown fresh per directory) and clears the previous results.
+     */
+    fun setActiveDirectory(directory: ListDirectory) {
+        if (activeDirectory.value?.path == directory.path) return
 
-        // Cancel any walk already running for this tab so its results can't land in the new
-        // directory
-        fileListJobs.remove(target)?.cancel()
-
-        _loadingTargets.update { it + target }
-
-        val job = viewModelScope.launch(Dispatchers.Default) {
-            if (!Storage.isReady(application)) {
-                _loadingTargets.update { it - target }
-                return@launch
-            }
-
-            // Stream partial results into the list as the walk progresses (Voice Notes can take
-            // tens of seconds over SAF), then publish the final, fully-sorted list. The isActive
-            // guards drop any write from a walk that was canceled while still winding down.
-            val fileList = FileRepository.getFileList(application, path) { partial ->
-                if (isActive)
-                    setFileList(
-                        target,
-                        sortAndFilter(
-                            partial,
-                            sortBy,
-                            isSortDescending,
-                            filterStartDate,
-                            filterEndDate
-                        )
-                    )
-            }
-
-            if (isActive) {
-                setFileList(
-                    target,
-                    sortAndFilter(
-                        fileList,
-                        sortBy,
-                        isSortDescending,
-                        filterStartDate,
-                        filterEndDate
-                    )
-                )
-
-                _loadingTargets.update { it - target }
-            }
-        }
-
-        fileListJobs[target] = job
+        _filter.value = FileFilter()
+        rawFiles.value = emptyMap()
+        // Mark every tab loading up front so a slow tab never flashes its empty state first.
+        _loadingTargets.value = targetsFor(directory).map { it.first }.toSet()
+        activeDirectory.value = directory
     }
 
-    private fun setFileList(target: Target, list: List<ListFile>) {
-        when (target) {
-            Target.Received -> _fileList.value = list
-            Target.Sent -> _sentList.value = list
-            Target.Private -> _privateList.value = list
+    /** Called when the details screen leaves; cancels any in-flight walk and clears the lists. */
+    fun clearActiveDirectory() {
+        activeDirectory.value = null
+    }
+
+    fun setSort(sortBy: SortBy, descending: Boolean) {
+        _filter.update { it.copy(sortBy = sortBy, descending = descending) }
+    }
+
+    fun setDateFilter(startDate: Long?, endDate: Long?) {
+        _filter.update { it.copy(startDate = startDate, endDate = endDate) }
+    }
+
+    /** The tabs to walk for [directory], each paired with its path relative to the WhatsApp root. */
+    private fun targetsFor(directory: ListDirectory): List<Pair<Target, String>> = buildList {
+        add(Target.Received to directory.path)
+        if (directory.hasSent) add(Target.Sent to "${directory.path}/Sent")
+        if (directory.hasPrivate) add(Target.Private to "${directory.path}/Private")
+    }
+
+    /**
+     * Walks every tab of [directory] concurrently, streaming partial results into [rawFiles] as
+     * they arrive. Runs inside the collectLatest pipeline, so navigating away or reloading cancels
+     * the whole walk in one shot ([supervisorScope] keeps this suspended until all tabs finish
+     * while isolating a single tab's failure so it can't abort the others or the pipeline).
+     */
+    private suspend fun loadFiles(directory: ListDirectory) = supervisorScope {
+        val targets = targetsFor(directory)
+
+        rawFiles.value = emptyMap()
+        _loadingTargets.value = targets.map { it.first }.toSet()
+
+        if (!Storage.isReady(application)) {
+            _loadingTargets.value = emptySet()
+            return@supervisorScope
+        }
+
+        targets.forEach { (target, path) ->
+            launch(Dispatchers.Default) {
+                // Voice Notes can take tens of seconds over SAF; stream partials so the list fills
+                // in as the walk progresses. The isActive guards drop any write from a walk that
+                // was canceled while still winding down.
+                try {
+                    val result = FileRepository.getFileList(application, path) { partial ->
+                        if (isActive) setRawFiles(target, partial)
+                    }
+                    if (isActive) setRawFiles(target, result)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // One tab failing (e.g. a SAF error) must not sink the others; log and let this
+                    // tab settle to whatever partial results it managed.
+                    Log.e(TAG, "loadFiles: failed to walk $path", e)
+                } finally {
+                    if (isActive) _loadingTargets.update { it - target }
+                }
+            }
         }
     }
 
-    private fun sortAndFilter(
-        source: List<ListFile>,
-        sortBy: String,
-        isSortDescending: Boolean,
-        filterStartDate: Long?,
-        filterEndDate: Long?
-    ): List<ListFile> {
-        val baseComparator: Comparator<ListFile> = when {
-            sortBy.contains("Name") -> compareBy { it.name }
-            sortBy.contains("Size") -> compareBy { it.sizeBytes }
-            else -> compareBy { it.dateModified }
-        }
-        val comparator = if (isSortDescending) baseComparator.reversed() else baseComparator
+    private fun setRawFiles(target: Target, list: List<ListFile>) {
+        rawFiles.update { it + (target to list) }
+    }
 
+    private fun sortAndFilter(source: List<ListFile>, filter: FileFilter): List<ListFile> {
+        val baseComparator: Comparator<ListFile> = when (filter.sortBy) {
+            SortBy.NAME -> compareBy { it.name }
+            SortBy.SIZE -> compareBy { it.sizeBytes }
+            SortBy.DATE -> compareBy { it.dateModified }
+        }
+        val comparator = if (filter.descending) baseComparator.reversed() else baseComparator
+
+        val start = filter.startDate
+        val end = filter.endDate
         val filtered =
-            if (sortBy.contains("Date") && filterStartDate != null && filterEndDate != null)
-                source.filter { it.dateModified > filterStartDate && it.dateModified < filterEndDate }
+            if (filter.sortBy == SortBy.DATE && start != null && end != null)
+                source.filter { it.dateModified > start && it.dateModified < end }
             else source
 
         return filtered.sortedWith(comparator)
@@ -282,7 +319,7 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
 
             // Re-walk the directory so the lists reflect what's actually on disk — a deletion can
             // partially fail, so we can't just drop the requested files from the lists
-            _fileReloadTrigger.value = !_fileReloadTrigger.value
+            reloadSignal.update { it + 1 }
         }
     }
 
@@ -295,15 +332,6 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
 
         publishDirectoryItem()
     }
-
-    fun clearFileListStates() {
-        fileListJobs.values.forEach { it.cancel() }
-        fileListJobs.clear()
-        _loadingTargets.value = emptySet()
-        _fileList.value = emptyList()
-        _sentList.value = emptyList()
-        _privateList.value = emptyList()
-    }
 }
 
 sealed class Target {
@@ -311,6 +339,21 @@ sealed class Target {
     data object Sent : Target()
     data object Private : Target()
 }
+
+/** What the file list is sorted by; [label] is the user-facing name shown in the sort dialog. */
+enum class SortBy(val label: String) {
+    DATE("Date"),
+    SIZE("Size"),
+    NAME("Name"),
+}
+
+/** The sort + date-range filter applied to the walked files before they reach the UI. */
+data class FileFilter(
+    val sortBy: SortBy = SortBy.DATE,
+    val descending: Boolean = true,
+    val startDate: Long? = null,
+    val endDate: Long? = null,
+)
 
 sealed class ViewState<out T> {
     data object Loading : ViewState<Nothing>()
