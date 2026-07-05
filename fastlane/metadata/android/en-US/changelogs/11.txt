@@ -1,0 +1,4 @@
+- migrate play flavour to be saf compliant
+- fix icon issue
+
+Full Changelog -> https://github.com/VishnuSanal/WhatsAppCleaner/compare/v1.3.1...v1.4.0
