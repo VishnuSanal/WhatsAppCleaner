@@ -59,7 +59,7 @@ fun PermissionScreen(
             )
 
             Text(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 0.dp),
                 text = "Thanks for installing WhatsAppCleaner. Please follow this quick setup to get started.",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Start,
@@ -69,7 +69,7 @@ fun PermissionScreen(
             Text(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                    .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 0.dp),
                 text = if (showDirectoryHint)
                     "Please grant access to the WhatsApp directory as shown in the picture below. This is the only permission the app needs."
                 else
