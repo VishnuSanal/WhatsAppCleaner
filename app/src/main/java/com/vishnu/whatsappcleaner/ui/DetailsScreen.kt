@@ -36,6 +36,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -92,10 +94,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -103,6 +108,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
+import com.bumptech.glide.integration.compose.placeholder
 import com.vishnu.whatsappcleaner.Constants
 import com.vishnu.whatsappcleaner.MainViewModel
 import com.vishnu.whatsappcleaner.R
@@ -800,35 +808,157 @@ fun ConfirmationDialog(
                     columns = GridCells.Fixed(3),
                 ) {
                     items(selectedItems) { listFile ->
-                        Box(
-                            modifier = Modifier.clickable { selectedItems.remove(listFile) }
-                        ) {
-                            ItemGridCard(
-                                listFile,
-                                navController,
-                                selectionEnabled = false
-                            ) {}
-
-                            Box(
-                                modifier = Modifier
-                                    .padding(12.dp)
-                                    .size(22.dp)
-                                    .align(Alignment.TopEnd)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.errorContainer)
-                                    .zIndex(4f),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "×",
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                )
-                            }
+                        ConfirmationCard(listFile) {
+                            selectedItems.remove(listFile)
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+fun ConfirmationCard(
+    listFile: ListFile,
+    onRemove: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .padding(8.dp)
+            .clickable(onClick = onRemove),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clip(shape = RoundedCornerShape(8.dp))
+        ) {
+            if (listFile.extension.lowercase() in Constants.EXTENSIONS_IMAGE) GlideImage(
+                model = listFile.uri,
+                contentScale = ContentScale.Crop,
+                loading = placeholder(R.drawable.image),
+                failure = placeholder(R.drawable.error),
+                contentDescription = "confirmation list item"
+            )
+            else if (listFile.extension.lowercase() in Constants.EXTENSIONS_VIDEO) {
+                GlideImage(
+                    model = listFile.uri,
+                    contentScale = ContentScale.Crop,
+                    loading = placeholder(R.drawable.image),
+                    failure = placeholder(R.drawable.error),
+                    contentDescription = "confirmation list item"
+                )
+
+                Icon(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .align(Alignment.Center)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
+                        .padding(8.dp)
+                        .aspectRatio(1f)
+                        .zIndex(2f),
+                    painter = painterResource(id = R.drawable.video),
+                    contentDescription = "video",
+                )
+            } else if (listFile.extension.lowercase() in Constants.EXTENSIONS_DOCS) {
+                Column {
+                    Icon(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
+                            .padding(8.dp),
+                        painter = painterResource(id = R.drawable.document),
+                        contentDescription = "doc",
+                    )
+
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .padding(8.dp),
+                        text = listFile.name,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        minLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            } else if (listFile.extension.lowercase() in Constants.EXTENSIONS_AUDIO) {
+                Column {
+                    Icon(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
+                            .padding(8.dp),
+                        painter = painterResource(id = R.drawable.audio),
+                        contentDescription = "audio",
+                    )
+
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .padding(8.dp),
+                        text = listFile.name,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        minLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            } else {
+                Column {
+                    Icon(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
+                            .padding(8.dp),
+                        painter = painterResource(id = R.drawable.unknown),
+                        contentDescription = "unknown",
+                    )
+
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .padding(8.dp),
+                        text = listFile.name,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        minLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(22.dp)
+                    .align(Alignment.TopEnd)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .zIndex(4f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "×",
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
             }
         }
     }
