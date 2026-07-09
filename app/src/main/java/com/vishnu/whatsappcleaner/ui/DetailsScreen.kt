@@ -31,13 +31,10 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -53,7 +50,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -88,35 +84,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
-import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
-import com.bumptech.glide.integration.compose.GlideImage
-import com.bumptech.glide.integration.compose.placeholder
 import com.vishnu.whatsappcleaner.Constants
 import com.vishnu.whatsappcleaner.MainViewModel
 import com.vishnu.whatsappcleaner.R
 import com.vishnu.whatsappcleaner.Target
 import com.vishnu.whatsappcleaner.ViewState
-import com.vishnu.whatsappcleaner.data.FileRepository
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
 import kotlinx.coroutines.launch
@@ -368,7 +354,10 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                     .padding(8.dp),
                                 columns = GridCells.Fixed(3)
                             ) {
-                                items(list) {
+                                items(
+                                    items = list,
+                                    key = { it.uri }
+                                ) {
                                     ItemGridCard(it, navController, selectedItems.contains(it)) {
                                         if (selectedItems.contains(it)) selectedItems.remove(it)
                                         else selectedItems.add(it)
@@ -382,7 +371,10 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                     .fillMaxSize()
                                     .padding(8.dp)
                             ) {
-                                items(list) {
+                                items(
+                                    items = list,
+                                    key = { it.uri }
+                                ) {
                                     ItemListCard(it, navController, selectedItems.contains(it)) {
                                         if (selectedItems.contains(it)) selectedItems.remove(it)
                                         else selectedItems.add(it)
@@ -439,7 +431,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     }
 
     if (showConfirmationDialog) {
-        ConfirmationDialog(
+        CleanupConfirmationDialog(
             onDismissRequest = {
                 // Preserve the selection when the dialog is dismissed without deleting,
                 // so the user does not have to re-select everything after a cancel.
@@ -452,7 +444,8 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                 selectedItems.clear()
             },
             selectedItems = selectedItems,
-            navController = navController
+            context = navController.context,
+            onRemoveItem = { selectedItems.remove(it) }
         )
     }
 }
@@ -705,260 +698,6 @@ fun SortDialog(
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun ConfirmationDialog(
-    onDismissRequest: () -> Unit,
-    onConfirmation: () -> Unit,
-    selectedItems: SnapshotStateList<ListFile>,
-    navController: NavHostController
-) {
-    // Auto-dismiss when the user has removed every item, so we never attempt an empty delete.
-    LaunchedEffect(selectedItems.isEmpty()) {
-        if (selectedItems.isEmpty()) onDismissRequest()
-    }
-
-    if (selectedItems.isEmpty()) return
-
-    val context = navController.context
-    val totalSize = remember(selectedItems.toList()) {
-        FileRepository.formatSize(context, selectedItems.sumOf { it.sizeBytes })
-    }
-
-    Dialog(
-        onDismissRequest = onDismissRequest,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnClickOutside = true,
-            dismissOnBackPress = true,
-            decorFitsSystemWindows = true
-        ),
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .padding(vertical = 64.dp, horizontal = 32.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .padding(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.wrapContentHeight(),
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    Column(
-                        Modifier
-                            .weight(0.6f)
-                            .fillMaxWidth()
-                    ) {
-                        Text(
-                            modifier = Modifier
-                                .wrapContentHeight()
-                                .padding(vertical = 4.dp)
-                                .align(Alignment.Start),
-                            text = "Confirm Cleanup",
-                            style = MaterialTheme.typography.titleLarge,
-                        )
-
-                        Text(
-                            modifier = Modifier
-                                .wrapContentHeight()
-                                .padding(vertical = 2.dp)
-                                .align(Alignment.Start),
-                            text = "${selectedItems.size} files ($totalSize) will be deleted. Tap an item to remove it.",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-
-                    TextButton(
-                        modifier = Modifier
-                            .weight(0.4f)
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp, horizontal = 16.dp),
-                        onClick = onConfirmation,
-                        content = {
-                            Text(
-                                text = "Confirm",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                    )
-                }
-
-                LazyVerticalGrid(
-                    modifier = Modifier
-                        .wrapContentHeight(),
-                    columns = GridCells.Fixed(3),
-                ) {
-                    items(selectedItems) { listFile ->
-                        ConfirmationCard(listFile) {
-                            selectedItems.remove(listFile)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalGlideComposeApi::class)
-@Composable
-fun ConfirmationCard(
-    listFile: ListFile,
-    onRemove: () -> Unit,
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .padding(8.dp)
-            .clickable(onClick = onRemove),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .clip(shape = RoundedCornerShape(8.dp))
-        ) {
-            if (listFile.extension.lowercase() in Constants.EXTENSIONS_IMAGE) GlideImage(
-                model = listFile.uri,
-                contentScale = ContentScale.Crop,
-                loading = placeholder(R.drawable.image),
-                failure = placeholder(R.drawable.error),
-                contentDescription = "confirmation list item"
-            )
-            else if (listFile.extension.lowercase() in Constants.EXTENSIONS_VIDEO) {
-                GlideImage(
-                    model = listFile.uri,
-                    contentScale = ContentScale.Crop,
-                    loading = placeholder(R.drawable.image),
-                    failure = placeholder(R.drawable.error),
-                    contentDescription = "confirmation list item"
-                )
-
-                Icon(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .align(Alignment.Center)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
-                        .padding(8.dp)
-                        .aspectRatio(1f)
-                        .zIndex(2f),
-                    painter = painterResource(id = R.drawable.video),
-                    contentDescription = "video",
-                )
-            } else if (listFile.extension.lowercase() in Constants.EXTENSIONS_DOCS) {
-                Column {
-                    Icon(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .fillMaxHeight()
-                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
-                            .padding(8.dp),
-                        painter = painterResource(id = R.drawable.document),
-                        contentDescription = "doc",
-                    )
-
-                    Text(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight()
-                            .padding(8.dp),
-                        text = listFile.name,
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                        minLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            } else if (listFile.extension.lowercase() in Constants.EXTENSIONS_AUDIO) {
-                Column {
-                    Icon(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .fillMaxHeight()
-                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
-                            .padding(8.dp),
-                        painter = painterResource(id = R.drawable.audio),
-                        contentDescription = "audio",
-                    )
-
-                    Text(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight()
-                            .padding(8.dp),
-                        text = listFile.name,
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                        minLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            } else {
-                Column {
-                    Icon(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .fillMaxHeight()
-                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
-                            .padding(8.dp),
-                        painter = painterResource(id = R.drawable.unknown),
-                        contentDescription = "unknown",
-                    )
-
-                    Text(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight()
-                            .padding(8.dp),
-                        text = listFile.name,
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                        minLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .size(22.dp)
-                    .align(Alignment.TopEnd)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.errorContainer)
-                    .zIndex(4f),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "×",
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
             }
         }
     }

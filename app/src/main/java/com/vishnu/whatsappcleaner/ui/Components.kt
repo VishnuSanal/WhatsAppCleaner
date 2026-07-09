@@ -44,6 +44,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
@@ -80,8 +83,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
-import androidx.core.content.ContextCompat.startActivity
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.navigation.NavHostController
@@ -92,6 +96,7 @@ import com.valentinilk.shimmer.shimmer
 import com.vishnu.whatsappcleaner.Constants
 import com.vishnu.whatsappcleaner.R
 import com.vishnu.whatsappcleaner.ViewState
+import com.vishnu.whatsappcleaner.data.FileRepository
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
 import java.text.DateFormat
@@ -285,7 +290,7 @@ fun ItemGridCard(
     selectionEnabled: Boolean = true,
     toggleSelection: () -> Unit,
 ) {
-    key(listFile) {
+    key(listFile.uri) {
         // only for keeping track of the UI
         var selected by remember { mutableStateOf(isSelected) }
 
@@ -721,6 +726,284 @@ fun CleanUpButton(
             fontSize = 18.sp,
             letterSpacing = 1.sp
         )
+    }
+}
+
+@Composable
+fun ConfirmationDialog(
+    onDismissRequest: () -> Unit,
+    onConfirmation: () -> Unit,
+    title: String,
+    message: String,
+    confirmText: String = "Confirm",
+    content: @Composable () -> Unit = {}
+) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnClickOutside = true,
+            dismissOnBackPress = true,
+            decorFitsSystemWindows = true
+        ),
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(vertical = 64.dp, horizontal = 32.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(16.dp),
+            ) {
+                Row(
+                    modifier = Modifier.wrapContentHeight(),
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Column(
+                        Modifier
+                            .weight(0.6f)
+                            .fillMaxWidth()
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .wrapContentHeight()
+                                .padding(vertical = 4.dp)
+                                .align(Alignment.Start),
+                            text = title,
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+
+                        Text(
+                            modifier = Modifier
+                                .wrapContentHeight()
+                                .padding(vertical = 2.dp)
+                                .align(Alignment.Start),
+                            text = message,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+
+                    TextButton(
+                        modifier = Modifier
+                            .weight(0.4f)
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(vertical = 16.dp, horizontal = 16.dp),
+                        onClick = onConfirmation,
+                        content = {
+                            Text(
+                                text = confirmText,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                    )
+                }
+
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+fun CleanupConfirmationDialog(
+    onDismissRequest: () -> Unit,
+    onConfirmation: () -> Unit,
+    selectedItems: List<ListFile>,
+    context: Context,
+    onRemoveItem: (ListFile) -> Unit
+) {
+    val selectedItemsSnapshot = selectedItems.toList()
+
+    LaunchedEffect(selectedItemsSnapshot.isEmpty()) {
+        if (selectedItemsSnapshot.isEmpty()) onDismissRequest()
+    }
+
+    if (selectedItemsSnapshot.isEmpty()) return
+
+    val totalSize = remember(context, selectedItemsSnapshot) {
+        FileRepository.formatSize(context, selectedItemsSnapshot.sumOf { it.sizeBytes })
+    }
+
+    ConfirmationDialog(
+        onDismissRequest = onDismissRequest,
+        onConfirmation = onConfirmation,
+        title = "Confirm Cleanup",
+        message = "${selectedItemsSnapshot.size} files ($totalSize) will be deleted. " +
+            "Tap an item to remove it.",
+    ) {
+        LazyVerticalGrid(
+            modifier = Modifier
+                .wrapContentHeight(),
+            columns = GridCells.Fixed(3),
+        ) {
+            items(
+                items = selectedItemsSnapshot,
+                key = { it.uri }
+            ) { listFile ->
+                ConfirmationCard(listFile) {
+                    onRemoveItem(listFile)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+fun ConfirmationCard(
+    listFile: ListFile,
+    onRemove: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .padding(8.dp)
+            .clickable(onClick = onRemove),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clip(shape = RoundedCornerShape(8.dp))
+        ) {
+            if (listFile.extension.lowercase() in Constants.EXTENSIONS_IMAGE) GlideImage(
+                model = listFile.uri,
+                contentScale = ContentScale.Crop,
+                loading = placeholder(R.drawable.image),
+                failure = placeholder(R.drawable.error),
+                contentDescription = "confirmation list item"
+            )
+            else if (listFile.extension.lowercase() in Constants.EXTENSIONS_VIDEO) {
+                GlideImage(
+                    model = listFile.uri,
+                    contentScale = ContentScale.Crop,
+                    loading = placeholder(R.drawable.image),
+                    failure = placeholder(R.drawable.error),
+                    contentDescription = "confirmation list item"
+                )
+
+                Icon(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .align(Alignment.Center)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
+                        .padding(8.dp)
+                        .aspectRatio(1f)
+                        .zIndex(2f),
+                    painter = painterResource(id = R.drawable.video),
+                    contentDescription = "video",
+                )
+            } else if (listFile.extension.lowercase() in Constants.EXTENSIONS_DOCS) {
+                Column {
+                    Icon(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
+                            .padding(8.dp),
+                        painter = painterResource(id = R.drawable.document),
+                        contentDescription = "doc",
+                    )
+
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .padding(8.dp),
+                        text = listFile.name,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        minLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            } else if (listFile.extension.lowercase() in Constants.EXTENSIONS_AUDIO) {
+                Column {
+                    Icon(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
+                            .padding(8.dp),
+                        painter = painterResource(id = R.drawable.audio),
+                        contentDescription = "audio",
+                    )
+
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .padding(8.dp),
+                        text = listFile.name,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        minLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            } else {
+                Column {
+                    Icon(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
+                            .padding(8.dp),
+                        painter = painterResource(id = R.drawable.unknown),
+                        contentDescription = "unknown",
+                    )
+
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .padding(8.dp),
+                        text = listFile.name,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        minLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(22.dp)
+                    .align(Alignment.TopEnd)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .zIndex(4f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "×",
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            }
+        }
     }
 }
 
