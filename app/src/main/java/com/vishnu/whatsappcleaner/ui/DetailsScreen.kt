@@ -445,7 +445,10 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
             },
             selectedItems = selectedItems,
             context = navController.context,
-            onRemoveItem = { selectedItems.remove(it) }
+            onRemoveItem = {
+                selectedItems.remove(it)
+                isAllSelected = false
+            }
         )
     }
 }

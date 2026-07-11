@@ -842,7 +842,7 @@ fun CleanupConfirmationDialog(
         onConfirmation = onConfirmation,
         title = "Confirm Cleanup",
         message = "${selectedItemsSnapshot.size} files ($totalSize) will be deleted. " +
-            "Tap an item to remove it.",
+            "Tap the delete icon to remove an item.",
     ) {
         LazyVerticalGrid(
             modifier = Modifier
@@ -871,8 +871,7 @@ fun ConfirmationCard(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .padding(8.dp)
-            .clickable(onClick = onRemove),
+            .padding(8.dp),
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -992,15 +991,16 @@ fun ConfirmationCard(
                     .size(22.dp)
                     .align(Alignment.TopEnd)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .background(MaterialTheme.colorScheme.onPrimary)
+                    .clickable(onClick = onRemove)
                     .zIndex(4f),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "×",
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                Icon(
+                    modifier = Modifier.size(18.dp),
+                    painter = painterResource(id = R.drawable.ic_delete),
+                    tint = MaterialTheme.colorScheme.primary,
+                    contentDescription = "remove item"
                 )
             }
         }
