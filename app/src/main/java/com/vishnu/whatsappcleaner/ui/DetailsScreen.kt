@@ -294,8 +294,9 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                 .size(32.dp),
                             onClick = {
                                 isAllSelected = !isAllSelected
-                                if (isAllSelected) selectedItems.addAll(list)
-                                else selectedItems.clear()
+                                selectedItems.clear()
+                                if (isAllSelected)
+                                    selectedItems.addAll(list)
                             }
                         ) {
                             Icon(
@@ -316,7 +317,10 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                     .padding(8.dp),
                                 columns = GridCells.Fixed(3)
                             ) {
-                                items(list) {
+                                items(
+                                    items = list,
+                                    key = { it.uri }
+                                ) {
                                     ItemGridCard(it, navController, selectedItems.contains(it)) {
                                         if (selectedItems.contains(it)) selectedItems.remove(it)
                                         else selectedItems.add(it)
@@ -330,7 +334,10 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                     .fillMaxSize()
                                     .padding(8.dp)
                             ) {
-                                items(list) {
+                                items(
+                                    items = list,
+                                    key = { it.uri }
+                                ) {
                                     ItemListCard(it, navController, selectedItems.contains(it)) {
                                         if (selectedItems.contains(it)) selectedItems.remove(it)
                                         else selectedItems.add(it)
@@ -393,19 +400,22 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     }
 
     if (showConfirmationDialog) {
-        ConfirmationDialog(
+        CleanupConfirmationDialog(
             onDismissRequest = {
                 showConfirmationDialog = false
-                isAllSelected = false
-                selectedItems.clear()
             },
             onConfirmation = {
                 viewModel.delete(listDirectory, selectedItems.toList())
                 showConfirmationDialog = false
+                isAllSelected = false
                 selectedItems.clear()
             },
-            selectedItems,
-            navController
+            selectedItems = selectedItems,
+            context = navController.context,
+            onRemoveItem = {
+                selectedItems.remove(it)
+                isAllSelected = false
+            }
         )
     }
 }
@@ -650,99 +660,6 @@ fun SortDialog(
                         fontWeight = FontWeight.Medium,
                         style = MaterialTheme.typography.bodyLarge
                     )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ConfirmationDialog(
-    onDismissRequest: () -> Unit,
-    onConfirmation: () -> Unit,
-    list: List<ListFile>,
-    navController: NavHostController
-) {
-    Dialog(
-        onDismissRequest = onDismissRequest,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnClickOutside = true,
-            dismissOnBackPress = true,
-            decorFitsSystemWindows = true
-        ),
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .padding(vertical = 64.dp, horizontal = 32.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .padding(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.wrapContentHeight(),
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    Column(
-                        Modifier
-                            .weight(0.6f)
-                            .fillMaxWidth()
-                    ) {
-                        Text(
-                            modifier = Modifier
-                                .wrapContentHeight()
-                                .padding(vertical = 4.dp)
-                                .align(Alignment.Start),
-                            text = "Confirm Cleanup",
-                            style = MaterialTheme.typography.titleLarge,
-                        )
-
-                        Text(
-                            modifier = Modifier
-                                .wrapContentHeight()
-                                .padding(vertical = 2.dp)
-                                .align(Alignment.Start),
-                            text = "The following files will be deleted.",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-
-                    TextButton(
-                        modifier = Modifier
-                            .weight(0.4f)
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp, horizontal = 16.dp),
-                        onClick = onConfirmation,
-                        content = {
-                            Text(
-                                text = "Confirm",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                    )
-                }
-
-                // todo: no preview & replace it with count + red colored CTA
-                LazyVerticalGrid(
-                    modifier = Modifier
-                        .wrapContentHeight(),
-                    columns = GridCells.Fixed(3),
-                ) {
-                    items(list) { ItemGridCard(it, navController, selectionEnabled = false) {} }
                 }
             }
         }
