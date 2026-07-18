@@ -332,8 +332,9 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                 .size(32.dp),
                             onClick = {
                                 isAllSelected = !isAllSelected
-                                if (isAllSelected) selectedItems.addAll(list)
-                                else selectedItems.clear()
+                                selectedItems.clear()
+                                if (isAllSelected)
+                                    selectedItems.addAll(list)
                             }
                         ) {
                             Icon(
@@ -433,8 +434,6 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
     if (showConfirmationDialog) {
         CleanupConfirmationDialog(
             onDismissRequest = {
-                // Preserve the selection when the dialog is dismissed without deleting,
-                // so the user does not have to re-select everything after a cancel.
                 showConfirmationDialog = false
             },
             onConfirmation = {
