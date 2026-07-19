@@ -315,7 +315,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(8.dp),
-                                columns = GridCells.Fixed(3)
+                                columns = GridCells.Fixed(Constants.DETAILS_GRID_COLUMN_COUNT)
                             ) {
                                 items(
                                     items = list,

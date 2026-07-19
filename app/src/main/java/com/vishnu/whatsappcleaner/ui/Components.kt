@@ -22,6 +22,7 @@ package com.vishnu.whatsappcleaner.ui
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Drawable
 import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
@@ -72,6 +73,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.AnnotatedString
@@ -89,9 +92,12 @@ import androidx.compose.ui.zIndex
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.navigation.NavHostController
+import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.bumptech.glide.integration.compose.placeholder
+import com.bumptech.glide.load.DecodeFormat
+import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy
 import com.valentinilk.shimmer.shimmer
 import com.vishnu.whatsappcleaner.Constants
 import com.vishnu.whatsappcleaner.R
@@ -294,6 +300,11 @@ fun ItemGridCard(
         // only for keeping track of the UI
         var selected by remember { mutableStateOf(isSelected) }
 
+        val screenWidthPx = with(LocalDensity.current) {
+            LocalConfiguration.current.screenWidthDp.dp.roundToPx()
+        }
+        val thumbnailSizePx = screenWidthPx / Constants.DETAILS_GRID_COLUMN_COUNT
+
         var modifier = if (listFile.uri.contains(Constants.LIST_LOADING_INDICATION)
         ) Modifier.shimmer()
         else Modifier
@@ -371,7 +382,8 @@ fun ItemGridCard(
                     contentScale = ContentScale.Crop,
                     loading = placeholder(R.drawable.image),
                     failure = placeholder(R.drawable.error),
-                    contentDescription = "details list item"
+                    contentDescription = "details list item",
+                    requestBuilderTransform = { it.asThumbnail(thumbnailSizePx) }
                 )
                 else if (listFile.extension.lowercase() in Constants.EXTENSIONS_VIDEO) {
                     GlideImage(
@@ -379,7 +391,8 @@ fun ItemGridCard(
                         contentScale = ContentScale.Crop,
                         loading = placeholder(R.drawable.image),
                         failure = placeholder(R.drawable.error),
-                        contentDescription = "details list item"
+                        contentDescription = "details list item",
+                        requestBuilderTransform = { it.asThumbnail(thumbnailSizePx) }
                     )
 
                     Icon(
@@ -486,6 +499,10 @@ fun ItemListCard(
 ) {
     var selected by remember { mutableStateOf(isSelected) }
 
+    val thumbnailSizePx = with(LocalDensity.current) {
+        Constants.DETAILS_LIST_THUMBNAIL_SIZE_DP.dp.roundToPx()
+    }
+
     val modifier = if (listFile.uri.contains(Constants.LIST_LOADING_INDICATION))
         Modifier.shimmer() else Modifier
 
@@ -547,7 +564,8 @@ fun ItemListCard(
                                 loading = placeholder(R.drawable.image),
                                 failure = placeholder(R.drawable.error),
                                 contentDescription = "image preview",
-                                modifier = Modifier.size(48.dp)
+                                modifier = Modifier.size(48.dp),
+                                requestBuilderTransform = { it.asThumbnail(thumbnailSizePx) }
                             )
                         }
 
@@ -570,7 +588,8 @@ fun ItemListCard(
                                 contentScale = ContentScale.Crop,
                                 loading = placeholder(R.drawable.image),
                                 failure = placeholder(R.drawable.error),
-                                contentDescription = "details list item"
+                                contentDescription = "details list item",
+                                requestBuilderTransform = { it.asThumbnail(thumbnailSizePx) }
                             )
                         }
 
@@ -1042,3 +1061,7 @@ fun openFile(context: Context, listFile: ListFile) {
         ).show()
     }
 }
+
+private fun RequestBuilder<Drawable>.asThumbnail(sizePx: Int): RequestBuilder<Drawable> = override(sizePx)
+    .downsample(DownsampleStrategy.CENTER_OUTSIDE)
+    .format(DecodeFormat.PREFER_RGB_565)

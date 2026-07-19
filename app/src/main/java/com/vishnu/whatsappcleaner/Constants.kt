@@ -34,6 +34,10 @@ object Constants {
 
     const val CALCULATING = "Calculating…"
 
+    const val DETAILS_GRID_COLUMN_COUNT = 3
+
+    const val DETAILS_LIST_THUMBNAIL_SIZE_DP = 48
+
     final val EXTENSIONS_IMAGE = listOf(
         "jpg",
         "jpeg",
