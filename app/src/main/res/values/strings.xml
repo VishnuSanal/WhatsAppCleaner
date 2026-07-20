@@ -1,3 +1,51 @@
 <resources>
     <string name="app_name">WhatsAppCleaner</string>
+
+    <!-- About screen -->
+    <string name="about">About</string>
+    <string name="about_tagline">Clean redundant WhatsApp media &amp; files</string>
+    <string name="about_version">Version %1$s</string>
+
+    <string name="about_privacy_title">Private by Design</string>
+    <string name="about_privacy_body">100% local - your files never leave your device. No ads or trackers and completely FOSS</string>
+
+    <string name="section_support">Support</string>
+    <string name="section_project">Project</string>
+    <string name="section_community">Community</string>
+    <string name="section_legal">About</string>
+
+    <string name="support_coffee_title">Buy me a coffee</string>
+    <string name="support_coffee_subtitle">Help keep the app free &amp; ad-free</string>
+
+    <string name="rate_title">Rate on Google Play</string>
+    <string name="rate_subtitle">Ratings help others discover the app</string>
+
+    <string name="share_title">Share the app</string>
+    <string name="share_subtitle">Tell a friend who\'s low on storage</string>
+
+    <string name="source_title">Source code</string>
+    <string name="source_subtitle">Star the project on GitHub</string>
+
+    <string name="bug_title">Report a bug</string>
+    <string name="bug_subtitle">Open an issue on GitHub</string>
+
+    <string name="releases_title">What\'s new</string>
+    <string name="releases_subtitle">Changelog &amp; releases</string>
+
+    <string name="telegram_title">Join the Telegram group</string>
+    <string name="telegram_subtitle">Chat, suggest features, get involved</string>
+
+    <string name="license_title">License</string>
+    <string name="license_subtitle">GNU GPL v3.0 — free &amp; open source</string>
+
+    <string name="about_footer">Made with ❤ by Vishnu Sanal T</string>
+
+    <string name="share_subject">WhatsAppCleaner</string>
+    <string name="share_text">Running low on storage? WhatsAppCleaner cleans redundant WhatsApp media &amp; files. Get it here: %1$s</string>
+
+    <string name="link_open_failed">Couldn\'t open the link</string>
+
+    <string name="cd_about">About</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_open_external">Opens externally</string>
 </resources>
