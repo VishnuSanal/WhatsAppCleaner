@@ -1065,3 +1065,39 @@ fun openFile(context: Context, listFile: ListFile) {
 private fun RequestBuilder<Drawable>.asThumbnail(sizePx: Int): RequestBuilder<Drawable> = override(sizePx)
     .downsample(DownsampleStrategy.CENTER_OUTSIDE)
     .format(DecodeFormat.PREFER_RGB_565)
+
+/**
+ * Opens a web link in the user's browser (or whichever app handles it, e.g. Telegram, Play Store).
+ * The app declares no INTERNET permission; every link is handed off to an external handler, so a
+ * missing handler is the only failure mode we guard against.
+ */
+fun openUrl(context: Context, url: String) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+    } catch (e: ActivityNotFoundException) {
+        e.printStackTrace()
+        Toast.makeText(context, context.getString(R.string.link_open_failed), Toast.LENGTH_SHORT)
+            .show()
+    }
+}
+
+/** Fires the system share sheet with a pre-filled message pointing at the Play Store listing. */
+fun shareApp(context: Context) {
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.share_subject))
+        putExtra(
+            Intent.EXTRA_TEXT,
+            context.getString(R.string.share_text, Constants.ABOUT_URL_PLAY_STORE)
+        )
+    }
+    try {
+        context.startActivity(
+            Intent.createChooser(intent, context.getString(R.string.share_title))
+        )
+    } catch (e: ActivityNotFoundException) {
+        e.printStackTrace()
+        Toast.makeText(context, context.getString(R.string.link_open_failed), Toast.LENGTH_SHORT)
+            .show()
+    }
+}

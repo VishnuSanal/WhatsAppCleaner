@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -39,7 +41,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -70,7 +74,7 @@ fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
     Scaffold(
         modifier = Modifier.background(MaterialTheme.colorScheme.background),
         topBar = {
-            HomeTopBar(modifier = Modifier)
+            HomeTopBar(modifier = Modifier, navController = navController)
         }
     ) { contentPadding ->
         Column(
@@ -179,7 +183,7 @@ fun ListSizeHeader(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeTopBar(modifier: Modifier = Modifier) {
+fun HomeTopBar(modifier: Modifier = Modifier, navController: NavHostController) {
     TopAppBar(
         modifier = modifier,
         title = {
@@ -187,6 +191,14 @@ fun HomeTopBar(modifier: Modifier = Modifier) {
                 modifier = Modifier,
                 text = stringResource(R.string.app_name)
             )
+        },
+        actions = {
+            IconButton(onClick = { navController.navigate(Constants.SCREEN_ABOUT) }) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_info),
+                    contentDescription = stringResource(R.string.cd_about)
+                )
+            }
         }
     )
 }

@@ -44,6 +44,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.vishnu.whatsappcleaner.data.Storage
+import com.vishnu.whatsappcleaner.ui.AboutScreen
 import com.vishnu.whatsappcleaner.ui.DetailsScreen
 import com.vishnu.whatsappcleaner.ui.HomeScreen
 import com.vishnu.whatsappcleaner.ui.PermissionScreen
@@ -234,6 +235,36 @@ class MainActivity : ComponentActivity() {
                         }
                     ) {
                         DetailsScreen(navController, viewModel)
+                    }
+
+                    composable(
+                        route = Constants.SCREEN_ABOUT,
+                        enterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeIn(animationSpec = tween(durationMillis = 700))
+                        },
+                        exitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeOut(animationSpec = tween(durationMillis = 700))
+                        },
+                        popEnterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeIn(animationSpec = tween(durationMillis = 700))
+                        },
+                        popExitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                animationSpec = tween(durationMillis = 700)
+                            ) + fadeOut(animationSpec = tween(durationMillis = 700))
+                        }
+                    ) {
+                        AboutScreen(navController)
                     }
                 }
             }

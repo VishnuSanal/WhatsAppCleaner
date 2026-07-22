@@ -25,6 +25,15 @@ object Constants {
     const val SCREEN_PERMISSION = "permission"
     const val SCREEN_HOME = "home"
     const val SCREEN_DETAILS = "details"
+    const val SCREEN_ABOUT = "about"
+
+    const val ABOUT_URL_GITHUB = "https://github.com/VishnuSanal/WhatsAppCleaner"
+    const val ABOUT_URL_ISSUES = "https://github.com/VishnuSanal/WhatsAppCleaner/issues"
+    const val ABOUT_URL_RELEASES = "https://github.com/VishnuSanal/WhatsAppCleaner/releases"
+    const val ABOUT_URL_TELEGRAM = "https://t.me/QuotesStatusCreator"
+    const val ABOUT_URL_BUYMEACOFFEE = "https://www.buymeacoffee.com/VishnuSanal"
+    const val ABOUT_URL_PLAY_STORE = "https://play.google.com/store/apps/details?id=com.vishnu.whatsappcleaner.play"
+    const val ABOUT_URL_LICENSE = "https://www.gnu.org/licenses/gpl-3.0.html"
 
     const val DETAILS_LIST_ITEM = "details_list_item"
 
