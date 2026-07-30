@@ -105,6 +105,13 @@ import com.vishnu.whatsappcleaner.Target
 import com.vishnu.whatsappcleaner.ViewState
 import com.vishnu.whatsappcleaner.model.ListDirectory
 import com.vishnu.whatsappcleaner.model.ListFile
+import com.vishnu.whatsappcleaner.ui.components.Banner
+import com.vishnu.whatsappcleaner.ui.components.CleanUpButton
+import com.vishnu.whatsappcleaner.ui.components.CleanupConfirmationDialog
+import com.vishnu.whatsappcleaner.ui.components.ItemGridCard
+import com.vishnu.whatsappcleaner.ui.components.ItemListCard
+import com.vishnu.whatsappcleaner.ui.components.Title
+import com.vishnu.whatsappcleaner.ui.components.sizeBannerText
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -244,19 +251,7 @@ fun DetailsScreen(navController: NavHostController, viewModel: MainViewModel) {
                         targetOffsetY = { it / 8 }
                     )
             ) {
-                Banner(
-                    Modifier.padding(16.dp),
-                    buildAnnotatedString {
-                        val size = directorySize
-                        val parts = size.split(" ")
-                        if (parts.size == 2) {
-                            withStyle(SpanStyle(fontSize = 24.sp)) { append(parts[0]) }
-                            withStyle(SpanStyle(fontSize = 18.sp)) { append(" ${parts[1]}") }
-                        } else {
-                            withStyle(SpanStyle(fontSize = 24.sp)) { append(size) }
-                        }
-                    }
-                )
+                Banner(Modifier.padding(16.dp), sizeBannerText(directorySize))
             }
 
             if (listDirectory.hasSent || listDirectory.hasPrivate) {

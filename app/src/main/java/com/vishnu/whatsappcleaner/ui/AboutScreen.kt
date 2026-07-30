@@ -61,6 +61,9 @@ import androidx.navigation.NavHostController
 import com.vishnu.whatsappcleaner.BuildConfig
 import com.vishnu.whatsappcleaner.Constants
 import com.vishnu.whatsappcleaner.R
+import com.vishnu.whatsappcleaner.ui.components.Title
+import com.vishnu.whatsappcleaner.util.openUrl
+import com.vishnu.whatsappcleaner.util.shareApp
 
 /** A single tappable link row inside a grouped section card. */
 private data class AboutLink(

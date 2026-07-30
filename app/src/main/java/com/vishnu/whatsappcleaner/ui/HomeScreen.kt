@@ -44,11 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.valentinilk.shimmer.shimmer
 import com.vishnu.whatsappcleaner.BuildConfig
@@ -57,6 +53,11 @@ import com.vishnu.whatsappcleaner.MainViewModel
 import com.vishnu.whatsappcleaner.R
 import com.vishnu.whatsappcleaner.ViewState
 import com.vishnu.whatsappcleaner.model.ListDirectory
+import com.vishnu.whatsappcleaner.ui.components.Banner
+import com.vishnu.whatsappcleaner.ui.components.SingleCard
+import com.vishnu.whatsappcleaner.ui.components.Title
+import com.vishnu.whatsappcleaner.ui.components.bannerMessage
+import com.vishnu.whatsappcleaner.ui.components.sizeBannerText
 
 @Composable
 fun HomeScreen(navController: NavHostController, viewModel: MainViewModel) {
@@ -149,35 +150,10 @@ fun ListSizeHeader(
     isSizeLoading: Boolean = false
 ) = Banner(
     modifier = if (isSizeLoading) modifier.padding(16.dp).shimmer() else modifier.padding(16.dp),
-    text = buildAnnotatedString {
-        when (viewState.value) {
-            is ViewState.Success -> {
-                var size =
-                    (viewState.value as ViewState.Success<Pair<String, List<ListDirectory>>>).data.first
-
-                if (size.contains(" ")) {
-                    val split = size.split(" ")
-                    withStyle(SpanStyle(fontSize = 24.sp)) {
-                        append(split.get(0))
-                    }
-                    withStyle(SpanStyle(fontSize = 18.sp)) {
-                        append(" ${split.get(1)}")
-                    }
-                } else {
-                    withStyle(SpanStyle(fontSize = 24.sp)) {
-                        append(size)
-                    }
-                }
-            }
-
-            is ViewState.Loading -> withStyle(SpanStyle(fontSize = 18.sp)) {
-                append("Loading...")
-            }
-
-            is ViewState.Error -> withStyle(SpanStyle(fontSize = 18.sp)) {
-                append("Error")
-            }
-        }
+    text = when (val state = viewState.value) {
+        is ViewState.Success -> sizeBannerText(state.data.first)
+        is ViewState.Loading -> bannerMessage("Loading...")
+        is ViewState.Error -> bannerMessage("Error")
     }
 )
 

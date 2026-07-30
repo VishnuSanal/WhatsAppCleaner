@@ -37,6 +37,7 @@ object Constants {
 
     const val DETAILS_LIST_ITEM = "details_list_item"
 
+    // TODO: should get rid of this!
     const val LIST_LOADING_INDICATION: String = "com.vishnu.whatsappcleaner.loading"
 
     const val TAG = "vishnu"
