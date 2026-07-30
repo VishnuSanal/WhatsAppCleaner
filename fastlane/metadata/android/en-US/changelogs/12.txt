@@ -1,0 +1,5 @@
+- better confirmation dialog
+- optimized thumbnail loading for preview
+- add about page
+
+Full Changelog: https://github.com/VishnuSanal/WhatsAppCleaner/compare/v1.4.0...v1.4.1
